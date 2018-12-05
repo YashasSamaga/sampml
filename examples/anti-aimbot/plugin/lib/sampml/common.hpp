@@ -1,6 +1,0 @@
-#ifndef SAMPML_INCLUDED_COMMON_H
-#define SAMPML_INCLUDED_COMMON_H
-
-#define SAMPML_NAMESPACE sampml
-
-#endif

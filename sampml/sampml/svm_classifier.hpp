@@ -41,7 +41,7 @@ namespace SAMPML_NAMESPACE {
                 labels.insert(labels.end(), positives.size(), +1);
                 labels.insert(labels.end(), negatives.size(), -1);
             }
-
+            
             void train () {
                 if(samples.size() == 0) {
                     throw bad_input("Bad Input: no samples were provided for training");
