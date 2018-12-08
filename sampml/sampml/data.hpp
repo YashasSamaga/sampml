@@ -121,7 +121,7 @@ namespace SAMPML_NAMESPACE {
                                 break;
                             throw bad_format("Bad Input Format: less features than expected");
                         }
-                            
+                                                    
                         samples.back()(i) = *itr++;
                         
                     }

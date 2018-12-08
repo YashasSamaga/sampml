@@ -73,9 +73,9 @@ namespace SAMPML_NAMESPACE {
                                                     {1e-5, 1e-5, 1e-5}, {100,  1e6,  1e6},
                                                     dlib::max_function_calls(50));
 
-                double best_gamma = result.x(0);
-                double best_cost_positive = result.x(1);
-                double best_cost_negative = result.x(2);
+                best_gamma = result.x(0);
+                best_cost_positive = result.x(1);
+                best_cost_negative = result.x(2);
 
                 dlib::svm_c_trainer<svm_kernel_type> trainer;
                 trainer.set_kernel(svm_kernel_type(best_gamma));
@@ -85,6 +85,11 @@ namespace SAMPML_NAMESPACE {
                 classifier.normalizer = normalizer;
                 classifier.function = dlib::train_probabilistic_decision_function(trainer, samples, labels, 3);
             }
+
+            auto rank_features() {
+                dlib::kcentroid<svm_kernel_type> kc(svm_kernel_type(best_gamma), 0.0001, 512);
+                return dlib::rank_features(kc, samples, labels);
+            } 
 
             void serialize(std::string classifier) {
                 dlib::serialize(classifier) << this->classifier;
@@ -106,6 +111,10 @@ namespace SAMPML_NAMESPACE {
             using decision_funct_type = dlib::probabilistic_decision_function<svm_kernel_type>;
             using normalized_decision_funct_type = dlib::normalized_function<decision_funct_type>;
             normalized_decision_funct_type classifier;
+        
+            double best_gamma;
+            double best_cost_positive;
+            double best_cost_negative;
         };
     }
 }
