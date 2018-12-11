@@ -1,10 +1,8 @@
 #include <vector>
 #include <cmath>
-#include <optional>
 #include <cassert>
 
 #include <dlib/geometry.h>
-
 #include <sampml/feature_vector.hpp>
 
 #include "samp.hpp"
@@ -28,6 +26,8 @@ enum {
 	fShooterCameraFVY,
 	fShooterCameraFVZ,
 	fShooterCameraZoom,
+    //fShooterCameraAspectRatio,
+    //iShooterCameraMode,
 	
 	fShooterFacingAngle,
 	
@@ -102,6 +102,8 @@ struct translated_input {
             vector_3d position;
             vector_3d FV;
             float_element_type zoom;
+            float_element_type aspect_ratio;
+            int mode;
         } camera;
 
         struct {
@@ -144,7 +146,7 @@ struct translated_input {
 
 void translate(const input_vector& input, translated_input& output) {
     output.hit = input(bHit);
-    
+
     output.shooter.in_vehicle = input(bShooterInVehicle);
     output.shooter.surfing_object =  input(bShooterSurfingObject);
     output.shooter.surfing_vehicle = input(bShooterSurfingVehicle);
@@ -173,6 +175,8 @@ void translate(const input_vector& input, translated_input& output) {
     output.shooter.camera.FV.z() = input(fShooterCameraFVZ);
 
     output.shooter.camera.zoom = input(fShooterCameraZoom);
+    output.shooter.camera.mode = samp::CAMERA_WEAPON_AIM; //input(iShooterCameraMode);
+    output.shooter.camera.aspect_ratio = 1.6; //input(fShooterCameraAspectRatio);
 
     output.shooter.network.ping = input(iShooterPing);
     output.shooter.network.packet_loss = input(fShooterPacketLoss);
@@ -221,9 +225,9 @@ void translate(const input_vector& input, translated_input& output) {
 }
 
 /* the information which we wish to use for training */
-using output_vector = sampml::feature_vector<double, 15>;
+using output_vector = sampml::feature_vector<double, 16>;
 struct features {
-	static constexpr long SHOTS_PER_SAMPLE = 10;
+	static constexpr long SHOTS_PER_SAMPLE = 8;
 
     /*
     ** LOS = Line Of Shot
@@ -238,23 +242,9 @@ struct features {
     ** For those who do not use aimbot, they need to adjust the XY continously. As they adjust, the
     ** Z also alters slightly.
     **
+    ** Z variations decrease as the distance between the players increases and hence becomes an
+    ** ineffective gauge of aimbot usage
     */
-	double HitXYOffsetStdDev, /* INVESTIGATE USE */
-		   HitZOffsetStdDev;
-
-    /*
-    ** Aimbots do miss shots occasionally but they are usually not very off from the target but for
-    ** non-aimbots, the miss offsets are generally larger.
-    */
-    double ImmediateMissXYOffsetStdDev;
-    double ImmediateMissZOffsetStdDev; /* INVESTIGATE USE */
-
-    /*
-    ** Aimbots maintain very good aim at the player and hence the angle deviations are small
-    ** even for random movement of players.
-    */
-    double LOCLOSAngleDeltaMean;
-    double LOCLOSAngleDeltaStdDev;
 
     /*
     ** For players not using aimbot, the HITS tend to come when the velocity of the enemy
@@ -278,20 +268,18 @@ struct features {
     ** Puzzle: what if the player gets the immediate shot after a change successfuly but misses everything
     ** that comes next
     */
-    double HitVictimVelocityPerpDeltasMean;
-    double HitVictimVelocityPerpDeltasStdDev;
-
-    double ImmediateMissVictimVelocityPerpDeltasMean;
-    double ImmediateMissVictimVelocityPerpDeltasStdDev;
 
     /*
-    ** If the victim is standing still, we don't want the shooter to be suspected for aimbot.
-    ** We will use this for filtering.
-    */          
-	double ShooterHorizontalAngleStdDev, /* INVESTIGATE USE */
-           ShooterHorizontalAngleRateStdDev; /* INVESTIGATE USE */
-	
-    /* 
+    ** Aimbots do miss shots occasionally but they are usually not very off from the target but for
+    ** non-aimbots, the miss offsets are generally larger.
+    */
+
+    /*
+    ** Aimbots maintain very good aim at the player and hence the angle deviations are small
+    ** even for random movement of players.
+    */
+
+    /*
     ** As in most cases, the shooter need not adjust their aim while using an aimbot, the Z angle
     ** does not change significantly (if at all) as the XY is automatically adjusted by the aimbot
     ** and Z tends to not change very much.
@@ -299,16 +287,29 @@ struct features {
     ** Without an aimbot, the player needs to continously adjust the XY which also causes the Z
     ** to change slightly.
     */
-	double ShooterVerticalAngleStdDev,
-           ShooterVerticalAngleModeFrequency,
-		   ShooterVerticalAngleRateStdDev;
 
-	double HMRatio;  /* UNSUED */  
+    double LOCLOSAngleDeltaMean;
+    double LOCLOSAngleDeltaStdDev;
+
+	double ShooterVerticalAngleStdDev,
+		   ShooterVerticalAngleRateMean;
+    int ConstantVerticalAngleStreak;
+
+    double HitVerticalAngleStdDev;
+    double HitLOCLOSAngleDeltaMean,
+           HitLOCLOSAngleDeltaStdDev;
+    double HitVictimVelocityPerpDeltasMean,
+           HitVictimVelocityPerpDeltasStdDev;
+
+    double ImmediateMissLOCLOSAngleDeltaMean,
+           ImmediateMIssLOCLOSAngleDeltaStdDev;
+    double ImmediateMissVictimVelocityPerpDeltasMean,
+           ImmediateMissVictimVelocityPerpDeltasStdDev;
+
+    double AllMissLOCLOSAngleDeltaMean,
+           AllMissLOCLOSAngleDeltaStdDev;
 };
 
-/* online sample generator 
-** collects input vectors and produces an output vector when possible
-*/
 class transformer {
     public:
         std::vector<output_vector> pool;
@@ -325,182 +326,15 @@ class transformer {
             translate(raw_input, input);
 
             if(filter(input))
-                return;           
+                return;            
 
-            shots++;
+            bool try_process = preprocess(input);
 
-            vector_3d line_of_centers = input.victim.position - input.shooter.position;               
+            if(try_process)
+                process();
+        }       
 
-    		/* REFERENCE FRAME
-            ** parallel_axis: axis along line joining the two players
-            ** perpendicular_axis: axis along the normal of the plane formed by LOS and vertical line of the player
-            ** z_axis: axis perpendicular to parallel_axis and perpendicular_axis
-            */
-            const vector_3d xy_plane_normal(0, 0, 1); //TODO
-            vector_3d parallel_axis, perpendicular_axis, z_axis;				
-			parallel_axis 	    = dlib::normalize(line_of_centers);
-            perpendicular_axis 	= dlib::normalize(parallel_axis.cross(xy_plane_normal));
-            z_axis 				= dlib::normalize(parallel_axis.cross(perpendicular_axis));	
-
-            /* TODO check relative perp velocity 
-            CASE player and victim moving together in the same direction */
-            vector_3d transformed_victim_velocity;
-            transformed_victim_velocity.x() = input.victim.velocity.dot(perpendicular_axis); 
-            transformed_victim_velocity.y() = input.victim.velocity.dot(parallel_axis);
-            transformed_victim_velocity.z() = input.victim.velocity.dot(z_axis);
-
-            if(prev_victim_velocity.has_value()) {
-                float change = transformed_victim_velocity.x() - prev_victim_velocity.value().x();
-                if(input.hit)
-                    HitVictimVelocityPerpDeltas.push_back(change);
-                else
-                    ImmediateMissVictimVelocityPerpDeltas.push_back(change);
-            }
-            prev_victim_velocity = transformed_victim_velocity;
-
-            if(input.hit) {
-                hits++;
-                miss_streak = 0;
-
-                vector_3d transformed_shot_offset;
-                transformed_shot_offset.x() = input.shot.offset.dot(perpendicular_axis);
-                transformed_shot_offset.y() = input.shot.offset.dot(parallel_axis);
-                transformed_shot_offset.z() = input.shot.offset.dot(z_axis);
-
-                HitXYOffsets.push_back(
-                std::sqrt(transformed_shot_offset.x()*transformed_shot_offset.x()
-                        + transformed_shot_offset.y()*transformed_shot_offset.y()));
-
-                HitZOffsets.push_back(std::abs(transformed_shot_offset.z()));                    
-            } else {
-                miss_streak++;    
-            }
-
-            if(miss_streak == 1) {
-                /* immediate miss */
-                vector_3d line_of_shot = input.shot.hit_pos - input.shot.origin;
-  
-                /* check reliablity */  
-                if(line_of_shot.length() < 100.0 && input.shot.hit_pos.length() > 1.0) {
-                    vector_3d offset = line_of_centers + line_of_shot;				
-
-                    vector_3d transformed_shot_offset;
-                    transformed_shot_offset.x() = offset.dot(perpendicular_axis);
-                    transformed_shot_offset.y() = offset.dot(parallel_axis);
-                    transformed_shot_offset.z() = offset.dot(z_axis);
-
-                    ImmediateMissXYOffsets.push_back(
-                        std::sqrt(transformed_shot_offset.x()*transformed_shot_offset.x()
-                                + transformed_shot_offset.y()*transformed_shot_offset.y()));
-                    ImmediateMissZOffsets.push_back(std::abs(transformed_shot_offset.z()));
-                }
-            }
-
-            vector_3d camera_axis = dlib::normalize(input.shooter.camera.FV);
-            float angle = camera_axis.dot(line_of_centers)/line_of_centers.length();
-                LOCLOSAngleDifferences.push_back(std::abs(std::acos(angle)));
-
-            /*
-            ** Horizontal Angle: Z angle
-            ** Vertical Angle: angle between camera vector and XY plane
-            */
-
-            double hAngle = std::atan2(camera_axis(0), camera_axis(1)) * 180/pi();
-            ShooterHorizontalAngles.push_back((hAngle < 0.0) ? -hAngle : 360.0 - hAngle);
-            ShooterVerticalAngles.push_back(std::asin(camera_axis(2)) * 180/pi());
-
-            if(shots > features::SHOTS_PER_SAMPLE) {
-                if(shots >= 20) {
-                    reset();
-                    return;
-                }
-
-                if(hits == shots)
-                    return;
-
-                if(shots - hits < 2)
-                    return;
-
-                if(hits <= 3)
-                    return;
-                    
-                output_vector output;
-
-                dlib::matrix<float_element_type, 0, 1> HitXYOffsets_dm;
-                HitXYOffsets_dm.set_size(HitXYOffsets.size());
-                for(int i = 0; i < HitXYOffsets_dm.size(); i++)
-                    HitXYOffsets_dm(i) = HitXYOffsets[i];
-                output(0) = dlib::stddev(HitXYOffsets_dm);        
-
-                dlib::matrix<float_element_type, 0, 1> HitZOffsets_dm;
-                HitZOffsets_dm.set_size(HitZOffsets.size());
-                for(int i = 0; i < HitZOffsets_dm.size(); i++)
-                    HitZOffsets_dm(i) = HitZOffsets[i];
-                output(1) = dlib::stddev(HitZOffsets_dm);
-
-                dlib::matrix<float_element_type, 0, 1> ImmediateMissXYOffsets_dm;
-                ImmediateMissXYOffsets_dm.set_size(ImmediateMissXYOffsets.size());
-                for(int i = 0; i < ImmediateMissXYOffsets_dm.size(); i++)
-                    ImmediateMissXYOffsets_dm(i) = ImmediateMissXYOffsets[i];
-                output(2) = dlib::stddev(ImmediateMissXYOffsets_dm);          
-
-                dlib::matrix<float_element_type, 0, 1> ImmediateMissZOffsets_dm;
-                ImmediateMissZOffsets_dm.set_size(ImmediateMissZOffsets.size());
-                for(int i = 0; i < ImmediateMissZOffsets_dm.size(); i++)
-                    ImmediateMissZOffsets_dm(i) = ImmediateMissZOffsets[i];
-                output(3) = dlib::stddev(ImmediateMissZOffsets_dm);
-
-                dlib::matrix<float_element_type, 0, 1> LOCLOSAngleDifferences_dm;
-                LOCLOSAngleDifferences_dm.set_size(LOCLOSAngleDifferences.size());
-                for(int i = 0; i < LOCLOSAngleDifferences_dm.size(); i++)
-                    LOCLOSAngleDifferences_dm(i) = LOCLOSAngleDifferences[i];
-                output(4) = dlib::mean(LOCLOSAngleDifferences_dm); 
-                output(5) = dlib::stddev(LOCLOSAngleDifferences_dm);
-
-                dlib::matrix<float_element_type, 0, 1> HitVictimVelocityPerpDeltas_dm;
-                HitVictimVelocityPerpDeltas_dm.set_size(HitVictimVelocityPerpDeltas.size());
-                for(int i = 0; i < HitVictimVelocityPerpDeltas_dm.size(); i++)
-                    HitVictimVelocityPerpDeltas_dm(i) = HitVictimVelocityPerpDeltas[i];
-                output(6) = dlib::mean(HitVictimVelocityPerpDeltas_dm);
-                output(7) = dlib::stddev(HitVictimVelocityPerpDeltas_dm);
-
-                dlib::matrix<float_element_type, 0, 1> ImmediateMissVictimVelocityPerpDeltas_dm;
-                ImmediateMissVictimVelocityPerpDeltas_dm.set_size(ImmediateMissVictimVelocityPerpDeltas.size());
-                for(int i = 0; i < ImmediateMissVictimVelocityPerpDeltas_dm.size(); i++)
-                    ImmediateMissVictimVelocityPerpDeltas_dm(i) = ImmediateMissVictimVelocityPerpDeltas[i];
-                output(8) = dlib::mean(ImmediateMissVictimVelocityPerpDeltas_dm);
-                output(9) = dlib::stddev(ImmediateMissVictimVelocityPerpDeltas_dm);
-                
-                dlib::matrix<float_element_type, 0, 1> ShooterHorizontalAngles_dm;
-                ShooterHorizontalAngles_dm.set_size(ShooterHorizontalAngles.size());
-                for(int i = 0; i < ShooterHorizontalAngles_dm.size(); i++)
-                    ShooterHorizontalAngles_dm(i) = ShooterHorizontalAngles[i];
-                output(10) = dlib::stddev(ShooterHorizontalAngles_dm);
-
-                dlib::matrix<float_element_type, 0, 1> ShooterHorizontalAngleRates_dm;
-                ShooterHorizontalAngleRates_dm.set_size(ShooterHorizontalAngles.size() - 1);
-                for(int i = 0; i < ShooterHorizontalAngleRates_dm.size(); i++)
-                    ShooterHorizontalAngleRates_dm(i) = ShooterHorizontalAngles[i + 1] - ShooterHorizontalAngles[i];
-                output(11) = dlib::stddev(ShooterHorizontalAngleRates_dm);
-
-                dlib::matrix<float_element_type, 0, 1> ShooterVerticalAngles_dm;
-                ShooterVerticalAngles_dm.set_size(ShooterVerticalAngles.size());
-                for(int i = 0; i < ShooterVerticalAngles_dm.size(); i++)
-                    ShooterVerticalAngles_dm(i) = ShooterVerticalAngles[i];
-                output(12) = dlib::stddev(ShooterVerticalAngles_dm);
-                output(13) = 0.0;
-
-                dlib::matrix<float_element_type, 0, 1> ShooterVerticalAngleRates_dm;
-                ShooterVerticalAngleRates_dm.set_size(ShooterHorizontalAngles.size() - 1);
-                for(int i = 0; i < ShooterVerticalAngleRates_dm.size(); i++)
-                    ShooterVerticalAngleRates_dm(i) = ShooterVerticalAngles[i + 1] - ShooterVerticalAngles[i];
-                output(14) = dlib::stddev(ShooterVerticalAngleRates_dm);
-
-                pool.push_back(output);
-                reset();
-            }
-        }
-
+    private:
         bool filter(translated_input& input) {
             if(input.shooter.weapon != 31
             || input.shooter.state != samp::PLAYER_STATE_ONFOOT
@@ -513,15 +347,21 @@ class transformer {
             || input.victim.in_vehicle
             || input.victim.surfing_object
             || input.victim.surfing_vehicle
-            || (input.hit == false && hits == 0)
+            || input.victim.velocity.length() < 0.02
+            || input.shooter.camera.mode != samp::CAMERA_WEAPON_AIM
+            || (input.shooter.position - input.victim.position).length() < 10.0
+            || (input.shooter.position - input.victim.position).length() > 40.0
+            || (input.hit == false && shot_status.size() == 0)
             ) {
                 reset();
                 return true;
             }
 
             if((input.hit && prev_victimid != samp::INVALID_PLAYER_ID && prev_victimid != input.victim.id)
-            || (prev_tick != -1 && input.tick - prev_tick > 600)) {
+            || (prev_tick != -1 && input.tick - prev_tick > 500)) {
                 reset();
+                if (input.hit == false)
+                    return true;
             }
 
 			prev_victimid = input.victim.id;
@@ -529,41 +369,222 @@ class transformer {
             return false;
         }
 
-    private:
-        std::optional<vector_3d> prev_victim_velocity;
+        bool preprocess(const translated_input& input) {
+            const vector_3d xy_plane_normal(0, 0, 1);
+            vector_3d line_of_centers = input.victim.position - input.shooter.position;
 
-        std::vector<float_element_type> HitXYOffsets;
-        std::vector<float_element_type> HitZOffsets;
+            vector_3d parallel_axis, perpendicular_axis, z_axis;				
+			parallel_axis 	    = dlib::normalize(line_of_centers);
+            perpendicular_axis 	= dlib::normalize(parallel_axis.cross(xy_plane_normal));
+            z_axis 				= dlib::normalize(parallel_axis.cross(perpendicular_axis));
 
-        std::vector<float_element_type> ImmediateMissXYOffsets;
-        std::vector<float_element_type> ImmediateMissZOffsets;
+            vector_3d transformed_shooter_velocity;
+            transformed_shooter_velocity.x() = input.shooter.velocity.dot(perpendicular_axis); 
+            transformed_shooter_velocity.y() = input.shooter.velocity.dot(parallel_axis);
+            transformed_shooter_velocity.z() = input.shooter.velocity.dot(z_axis);
 
-        std::vector<float_element_type> HitVictimVelocityPerpDeltas;
-        std::vector<float_element_type> ImmediateMissVictimVelocityPerpDeltas;
+            vector_3d transformed_victim_velocity;
+            transformed_victim_velocity.x() = input.victim.velocity.dot(perpendicular_axis); 
+            transformed_victim_velocity.y() = input.victim.velocity.dot(parallel_axis);
+            transformed_victim_velocity.z() = input.victim.velocity.dot(z_axis);
 
-        std::vector<float_element_type> LOCLOSAngleDifferences;
+            const vector_3d camera_axis = input.shooter.camera.FV;
+            vector_3d right_vector = dlib::normalize(camera_axis.cross(xy_plane_normal));
+            vector_3d up_vector = dlib::normalize(camera_axis.cross(right_vector));
 
-        std::vector<float_element_type> ShooterHorizontalAngles;
-        std::vector<float_element_type> ShooterVerticalAngles;
+            vector_3d transformed_camera_axis;
+            transformed_camera_axis.x() = camera_axis.dot(perpendicular_axis); 
+            transformed_camera_axis.y() = camera_axis.dot(parallel_axis);
+            transformed_camera_axis.z() = camera_axis.dot(z_axis);         
 
-        int shots, hits, miss_streak, prev_victimid, prev_tick;
+            const double scaleY = (input.shooter.camera.aspect_ratio > 1.375) ? 0.4 : 0.525;
+            const double pX = ((340.0/640.0) - 0.5) * 2.0 * 0.7,
+                         pZ = ((225.0/480.0) - 0.5) * 2.0 * scaleY;
+
+            vector_3d reticle_axis;
+            reticle_axis = dlib::normalize(camera_axis + right_vector * pX + up_vector * pZ);
+            
+            vector_3d transformed_reticle_axis;
+            transformed_reticle_axis.x() = reticle_axis.dot(perpendicular_axis);
+            transformed_reticle_axis.y() = reticle_axis.dot(parallel_axis);
+            transformed_reticle_axis.z() = reticle_axis.dot(z_axis);
+
+            shot_status.push_back(input.hit);
+            shot_timestamp.push_back(input.tick);
+            shooter_facing_angles.push_back(input.shooter.facing_angle);
+            transformed_shooter_velocities.push_back(transformed_shooter_velocity);
+            transformed_victim_velocities.push_back(transformed_victim_velocity);
+            transformed_line_of_centers.push_back(vector_3d(0.0, line_of_centers.length(), 0.0));
+            original_camera_axes.push_back(camera_axis);
+            transformed_camera_axes.push_back(transformed_camera_axis);
+            transformed_reticle_axes.push_back(transformed_reticle_axis);
+
+            return (shot_status.size() >= 12);
+        }
+
+        void process() {
+            if(shot_status.size() >= 20) {
+                reset();
+                return;
+            }
+
+            if(shot_status.back() == true)
+                return;
+
+            int shots = shot_status.size();
+            for(int i = shot_status.size() - 1; shot_status[i] == false && shot_status[i - 1] == false; i--) {
+                assert(i > 0);
+                shots = i;
+            }
+
+            int hits = std::count(shot_status.begin(), shot_status.begin() + shots, true),
+                misses = shots - hits,
+                imisses = 0;
+            for(int i = 1; i < shots; i++)
+                if(shot_status[i] == false && shot_status[i-1] == true)
+                    imisses++;   
+
+            if(misses < 2)
+                return;
+
+            if(hits < 3)
+                return;
+
+            /* fix series mix TODO ex: ____------ vAngles for aimbot (use running_stats?) */
+
+            output_vector output;
+            dlib::matrix<float_element_type, 0, 1> LOCLOSDifferences(shots);
+            for(int i = 0; i < shots; i++) {
+                const auto& line_of_center = transformed_line_of_centers[i];
+                const auto& reticle_axis = transformed_reticle_axes[i];
+                LOCLOSDifferences(i) = std::acos(reticle_axis.dot(line_of_center)/line_of_center.length());
+            }
+            output(0) = dlib::mean(LOCLOSDifferences); /* LOCLOSAngleDeltaMean */ /* absolute? TODO */
+            output(1) = dlib::stddev(LOCLOSDifferences); /* LOCLOSAngleDeltaStdDev */
+
+            dlib::matrix<float_element_type, 0, 1> VerticalAngles(shots);
+            for(int i = 0; i < shots; i++) {
+                const auto& camera_axis = original_camera_axes[i];
+                VerticalAngles(i) = std::asin(camera_axis(2));
+            }
+            output(2) = dlib::stddev(VerticalAngles); /* ShooterVerticalAngleStdDev */
+
+            dlib::matrix<float_element_type, 0, 1> VerticalAngleRates(shots - 1);
+            for(int i = 1; i < shots; i++) {
+                auto prev = VerticalAngles(i - 1);
+                auto cur = VerticalAngles(i);
+                VerticalAngleRates(i - 1) = std::abs(cur - prev);
+            }
+            output(3) = dlib::mean(VerticalAngleRates); /* ShooterVerticalAngleRateMean */
+
+            int max_vangle_streak = 0;
+            for(int i = 1, current_streak = 0; i < shots; i++) {
+                auto prev = VerticalAngles(i - 1);
+                auto cur = VerticalAngles(i);
+                if(cur == prev && (shooter_facing_angles[i] != shooter_facing_angles[i - 1]))
+                    current_streak++;
+                else {
+                    max_vangle_streak = std::max(max_vangle_streak, current_streak);
+                    current_streak = 0;
+                }
+            }
+            output(4) = max_vangle_streak; /* ConstantVerticalAngleStreak */
+            if(max_vangle_streak > 4) {
+                std::cout << "BEGIN: \n";
+                for(int i = 0; i < shots; i++)
+                {
+                    std::cout << VerticalAngles(i) << " " << shooter_facing_angles[i] << ' ' << transformed_victim_velocities[i] << " " << shot_timestamp[i] << std::endl;
+                }
+            }
+
+            dlib::matrix<float_element_type, 0, 1> HitVerticalAngles(hits);
+            dlib::matrix<float_element_type, 0, 1> HitLOCLOSDifferences(hits);
+            for(int i = 0, hit_idx = 0; i < shots; i++) {
+                if(shot_status[i] == true) {
+                    HitVerticalAngles(hit_idx) = VerticalAngles(i);
+                    HitLOCLOSDifferences(hit_idx) = LOCLOSDifferences(i);
+                    hit_idx++; 
+                }                
+            }
+            output(5) = dlib::stddev(HitVerticalAngles); /* HitVerticalAngleStdDev */
+            output(6) = dlib::mean(HitLOCLOSDifferences); /* HitLOCLOSAngleDeltaMean */
+            output(7) = dlib::stddev(HitLOCLOSDifferences); /* HitLOCLOSAngleDeltaStdDev */
+            
+            dlib::matrix<float_element_type, 0, 1> HitVictimPerpVelocityDeltas(hits - 1);
+            for(int i = 1, hit_idx = 0; i < shots; i++) {
+                if(shot_status[i] == true) {
+                    const auto& v1 = transformed_victim_velocities[i-1];
+                    const auto& v2 = transformed_victim_velocities[i];
+                    HitVictimPerpVelocityDeltas(hit_idx) = std::abs(v2.x() - v1.x());
+                    hit_idx++;
+                }
+            }
+            output(8) = dlib::mean(HitVictimPerpVelocityDeltas); /* HitVictimVelocityPerpDeltasMean */
+            output(9) = dlib::stddev(HitVictimPerpVelocityDeltas); /* HitVictimVelocityPerpDeltasStdDev */        
+
+            dlib::matrix<float_element_type, 0, 1> IMissLOCLOSDifferences(imisses);
+            for(int i = 1, imiss_idx = 0; i < shots; i++) {
+                if(shot_status[i] == false && shot_status[i-1] == true) {
+                    IMissLOCLOSDifferences(imiss_idx) = LOCLOSDifferences(i);
+                    imiss_idx++; 
+                }                
+            }
+            output(10) = dlib::mean(IMissLOCLOSDifferences); /* ImmediateMissLOCLOSAngleDeltaMean */
+            output(11) = dlib::stddev(IMissLOCLOSDifferences); /* ImmediateMIssLOCLOSAngleDeltaStdDev */
+    
+            dlib::matrix<float_element_type, 0, 1> IMissVictimPerpVelocityDeltas(imisses);
+            for(int i = 1, imiss_idx = 0; i < shots; i++) {
+                if(shot_status[i] == false && shot_status[i-1] == true) {
+                    const auto& v1 = transformed_victim_velocities[i-1];
+                    const auto& v2 = transformed_victim_velocities[i];
+                    IMissVictimPerpVelocityDeltas(imiss_idx) = std::abs(v2.x() - v1.x());
+                    imiss_idx++;
+                }
+            }
+            output(12) = dlib::mean(IMissVictimPerpVelocityDeltas); /* ImmediateMissVictimVelocityPerpDeltasMean */
+            output(13) = dlib::stddev(IMissVictimPerpVelocityDeltas); /* ImmediateMissVictimVelocityPerpDeltasStdDev */
+
+            dlib::matrix<float_element_type, 0, 1> AllMissLOCLOSDifferences(misses);
+            for(int i = 1, miss_idx = 0; i < shots; i++) {
+                if(shot_status[i] == false) {
+                    AllMissLOCLOSDifferences(miss_idx) = LOCLOSDifferences(i);
+                    miss_idx++; 
+                }                
+            }
+            output(14) = dlib::mean(AllMissLOCLOSDifferences); /* AllMissLOCLOSAngleDeltaMean */
+            output(15) = dlib::stddev(AllMissLOCLOSDifferences); /* AllMissLOCLOSAngleDeltaStdDev */
+
+            pool.push_back(output);
+            reset();
+        }
+
+        /* processing data */
+        std::vector<unsigned int> shot_timestamp;
+        std::vector<bool> shot_status;
+        std::vector<float_element_type> shooter_facing_angles;
+        std::vector<vector_3d> transformed_shooter_velocities;
+        std::vector<vector_3d> transformed_victim_velocities;
+        std::vector<vector_3d> transformed_line_of_centers;
+        std::vector<vector_3d> original_camera_axes;
+        std::vector<vector_3d> transformed_camera_axes;
+        std::vector<vector_3d> transformed_reticle_axes;
+
+        /* filtering data */
+        int prev_victimid, prev_tick;
 
         void reset () {
-            shots = hits = miss_streak = 0;
             prev_victimid = samp::INVALID_PLAYER_ID;
             prev_tick = -1;
 
-            prev_victim_velocity.reset();
-
-            HitXYOffsets.clear();
-            HitZOffsets.clear();
-            ImmediateMissXYOffsets.clear();
-            ImmediateMissZOffsets.clear();
-            HitVictimVelocityPerpDeltas.clear();
-            ImmediateMissVictimVelocityPerpDeltas.clear();
-            LOCLOSAngleDifferences.clear();
-            ShooterHorizontalAngles.clear();
-            ShooterVerticalAngles.clear();
+            shot_timestamp.clear();
+            shot_status.clear();
+            shooter_facing_angles.clear();
+            transformed_shooter_velocities.clear();
+            transformed_victim_velocities.clear();
+            transformed_line_of_centers.clear();
+            original_camera_axes.clear();
+            transformed_camera_axes.clear();
+            transformed_reticle_axes.clear();
         }
 
         static constexpr double pi() { return std::atan(1)*4; }

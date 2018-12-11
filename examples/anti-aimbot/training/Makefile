@@ -1,2 +1,2 @@
 all:
-	g++ main.cpp -I../../lib/ -Wall -Wextra -Werror -O3 -ldlib -lopenblas -std=c++17
+	g++ main.cpp -I../../lib/ -Wall -Wextra -Werror -O3 -ldlib -lopenblas -std=c++17 -g

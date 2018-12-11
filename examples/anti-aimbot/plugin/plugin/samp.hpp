@@ -1,4 +1,6 @@
 namespace samp {
+	constexpr int INVALID_PLAYER_ID = 65535;
+
 	enum {
 		PLAYER_STATE_NONE,
 		PLAYER_STATE_ONFOOT,
