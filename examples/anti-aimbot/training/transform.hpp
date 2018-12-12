@@ -419,7 +419,7 @@ class transformer {
             transformed_camera_axes.push_back(transformed_camera_axis);
             transformed_reticle_axes.push_back(transformed_reticle_axis);
 
-            return (shot_status.size() >= 12);
+            return (shot_status.size() >= 15);
         }
 
         void process() {
@@ -444,7 +444,7 @@ class transformer {
                 if(shot_status[i] == false && shot_status[i-1] == true)
                     imisses++;   
 
-            if(misses < 2)
+            if(misses < 3)
                 return;
 
             if(hits < 3)
@@ -489,13 +489,6 @@ class transformer {
                 }
             }
             output(4) = max_vangle_streak; /* ConstantVerticalAngleStreak */
-            if(max_vangle_streak > 4) {
-                std::cout << "BEGIN: \n";
-                for(int i = 0; i < shots; i++)
-                {
-                    std::cout << VerticalAngles(i) << " " << shooter_facing_angles[i] << ' ' << transformed_victim_velocities[i] << " " << shot_timestamp[i] << std::endl;
-                }
-            }
 
             dlib::matrix<float_element_type, 0, 1> HitVerticalAngles(hits);
             dlib::matrix<float_element_type, 0, 1> HitLOCLOSDifferences(hits);
@@ -586,6 +579,4 @@ class transformer {
             transformed_camera_axes.clear();
             transformed_reticle_axes.clear();
         }
-
-        static constexpr double pi() { return std::atan(1)*4; }
 };
