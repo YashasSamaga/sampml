@@ -20,7 +20,9 @@ enum E_SHOT_VECTOR {
 	Float:fShooterCameraFVX,
 	Float:fShooterCameraFVY,
 	Float:fShooterCameraFVZ,
-	Float:fShooterCameraZoom,
+	//Float:fShooterCameraZoom,
+	//Float:fShooterCameraAspectRatio,
+	iShooterCameraMode,
 	
 	Float:fShooterFacingAngle,
 	
@@ -53,6 +55,7 @@ enum E_SHOT_VECTOR {
 	iVictimID,
 	
 	/* Shot Information */
+	iHitType,
 	Float:fOffsetX, // OPWS
 	Float:fOffsetY, // OPWS
 	Float:fOffsetZ, // OPWS
@@ -77,7 +80,8 @@ enum E_SHOT_VECTOR {
 stock EncodeShotVector(data[E_SHOT_VECTOR], buffer[], buffer_size = sizeof(buffer)) {
     static const title[] = "VECTOR";
 	#pragma unused title
-
+//"%.6f "             /* fShooterCameraAspectRatio*/
+			//"%i "               /* iShooterCameraMode       */
 	format( buffer, buffer_size,
 	        "%i "               /* bHit 					*/\
 			"%.6f %.6f %.6f "	/* fShooterPos				*/\
@@ -86,25 +90,26 @@ stock EncodeShotVector(data[E_SHOT_VECTOR], buffer[], buffer_size = sizeof(buffe
 			"%.6f %.6f %.6f "	/* fShooterCameraFV			*/\
 			"%.6f "             /* fShooterCameraZoom 		*/\
 			"%.6f "             /* fShooterFacingAngle 		*/\
-			"%i  "              /* iShooterState 			*/\
-			"%i  "              /* iShooterSpecialAction 	*/\
-			"%i  "              /* bShooterInVehicle		*/\
-			"%i  "              /* bShooterSurfingVehicle	*/\
-			"%i  "              /* bShooterSurfingObject 	*/\
-			"%i  "              /* iShooterWeaponModelID	*/\
- 			"%i  "              /* iShooterSkinID			*/\
-			"%i  "              /* iShooterID				*/\
+			"%i "              	/* iShooterState 			*/\
+			"%i "              	/* iShooterSpecialAction 	*/\
+			"%i "              	/* bShooterInVehicle		*/\
+			"%i "              	/* bShooterSurfingVehicle	*/\
+			"%i "              	/* bShooterSurfingObject 	*/\
+			"%i "              	/* iShooterWeaponModelID	*/\
+ 			"%i "              	/* iShooterSkinID			*/\
+			"%i "              	/* iShooterID				*/\
 			"%.6f %.6f %.6f "	/* fVictimPos				*/\
 			"%.6f %.6f %.6f "	/* fVictimVelocity			*/\
 			"%.6f "             /* fVictimFacingAngle 		*/\
-			"%i  "              /* iVictimState 			*/\
-			"%i  "              /* iVictimSpecialAction 	*/\
-			"%i  "              /* bVictimInVehicle			*/\
-			"%i  "              /* bVictimSurfingVehicle	*/\
-			"%i  "              /* bVictimSurfingObject 	*/\
-			"%i  "              /* iVictimWeaponID			*/\
- 			"%i  "              /* iVictimSkinID			*/\
-			"%i  "              /* iVictimID				*/\
+			"%i "              	/* iVictimState 			*/\
+			"%i "              	/* iVictimSpecialAction 	*/\
+			"%i "              	/* bVictimInVehicle			*/\
+			"%i "              	/* bVictimSurfingVehicle	*/\
+			"%i "              	/* bVictimSurfingObject 	*/\
+			"%i "              	/* iVictimWeaponID			*/\
+ 			"%i "              	/* iVictimSkinID			*/\
+			"%i "              	/* iVictimID				*/\
+			"%i "              	/* iHitType                 */\
 			"%.6f %.6f %.6f "	/* fOffset					*/\
 			"%.6f %.6f %.6f "	/* fOrigin					*/\
 			"%.6f %.6f %.6f "	/* fHitPos					*/\
@@ -120,6 +125,8 @@ stock EncodeShotVector(data[E_SHOT_VECTOR], buffer[], buffer_size = sizeof(buffe
 	        data[fShooterCameraPosX], data[fShooterCameraPosY], data[fShooterCameraPosZ],
 	        data[fShooterCameraFVX], data[fShooterCameraFVY], data[fShooterCameraFVZ],
 	        data[fShooterCameraZoom],
+	        //data[fShooterCameraAspectRatio],
+	        //data[iShooterCameraMode],
 	        data[fShooterFacingAngle],
 	        data[iShooterState],
 	        data[iShooterSpecialAction],
@@ -140,6 +147,7 @@ stock EncodeShotVector(data[E_SHOT_VECTOR], buffer[], buffer_size = sizeof(buffe
 	        data[iVictimWeaponID],
 	        data[iVictimSkinID],
 	        data[iVictimID],
+	        data[iHitType],
 	        data[fOffsetX], data[fOffsetY], data[fOffsetZ],
 	        data[fOriginX], data[fOriginY], data[fOriginZ],
 	        data[fHitPosX], data[fHitPosY], data[fHitPosZ],
@@ -151,3 +159,72 @@ stock EncodeShotVector(data[E_SHOT_VECTOR], buffer[], buffer_size = sizeof(buffe
 			data[iTick]);
 }
 
+stock CollectDataOPWS(data[E_SHOT_VECTOR], playerid, weaponid, hittype, hitid, Float:fX, Float:fY, Float:fZ) {
+	static last_hitid[MAX_PLAYERS] = {INVALID_PLAYER_ID, ...};
+
+	/* Shooter Information */
+	GetPlayerPos(playerid, data[fShooterPosX], data[fShooterPosY], data[fShooterPosZ]);
+	GetPlayerVelocity(playerid, data[fShooterVelocityX], data[fShooterVelocityY], data[fShooterVelocityZ]);
+
+	GetPlayerCameraPos(playerid, data[fShooterCameraPosX], data[fShooterCameraPosY], data[fShooterCameraPosZ]);
+	GetPlayerCameraFrontVector(playerid, data[fShooterCameraFVX], data[fShooterCameraFVY], data[fShooterCameraFVZ]);
+	//data[fShooterCameraZoom] = GetPlayerCameraZoom(playerid);
+
+	GetPlayerFacingAngle(playerid, data[fShooterFacingAngle]);
+
+	data[iShooterState] = GetPlayerState(playerid);
+	data[iShooterSpecialAction] = GetPlayerSpecialAction(playerid);
+	data[bShooterInVehicle] = bool:IsPlayerInAnyVehicle(playerid);
+	data[bShooterSurfingVehicle] = (GetPlayerSurfingVehicleID(playerid) != INVALID_VEHICLE_ID);
+	data[bShooterSurfingObject] = (GetPlayerSurfingObjectID(playerid) != INVALID_OBJECT_ID);
+ 	data[iShooterWeaponID] = weaponid;
+ 	data[iShooterSkinID] = GetPlayerSkin(playerid);
+ 	data[iShooterID] = playerid;
+
+ 	data[iShooterPing] = GetPlayerPing(playerid);
+	data[fShooterPacketLoss] = NetStats_PacketLossPercent(playerid);
+
+	/* Shot Information */
+	data[iHitType] = hittype;
+	data[fOffsetX] = fX;
+	data[fOffsetY] = fY;
+	data[fOffsetZ] = fZ;
+
+	GetPlayerLastShotVectors(playerid,	data[fOriginX], data[fOriginY], data[fOriginZ],
+										data[fHitPosX], data[fHitPosY], data[fHitPosZ]);
+
+	/*
+	** if the player misses a shot, we will send the information about the previous
+	** victim for one more shot just in case it's of use
+	*/
+	new bool:hit_a_player = (hittype == BULLET_HIT_TYPE_PLAYER);
+	data[bHit] = hit_a_player;
+
+	new victimid = hit_a_player ? hitid : last_hitid[playerid];
+	if(hit_a_player)
+ 		last_hitid[playerid] = hitid;
+
+	if(IsPlayerConnected(victimid)) {
+		/* Victim Information */
+		GetPlayerPos(victimid, data[fVictimPosX], data[fVictimPosY], data[fVictimPosZ]);
+		GetPlayerVelocity(victimid, data[fVictimVelocityX], data[fVictimVelocityY], data[fVictimVelocityZ]);
+
+		GetPlayerFacingAngle(victimid, data[fVictimFacingAngle]);
+
+		data[iVictimState] = GetPlayerState(victimid);
+		data[iVictimSpecialAction] = GetPlayerSpecialAction(victimid);
+		data[bVictimInVehicle] = bool:IsPlayerInAnyVehicle(victimid);
+		data[bVictimSurfingVehicle] = (GetPlayerSurfingVehicleID(victimid) != INVALID_VEHICLE_ID);
+		data[bVictimSurfingObject] = (GetPlayerSurfingObjectID(victimid) != INVALID_OBJECT_ID);
+	 	data[iVictimWeaponID] = GetPlayerWeapon(victimid);
+	 	data[iVictimSkinID] = GetPlayerSkin(victimid);
+	 	data[iVictimID] = victimid;
+
+	 	data[iVictimPing] = GetPlayerPing(victimid);
+		data[fVictimPacketLoss] = NetStats_PacketLossPercent(victimid);
+	} else last_hitid[playerid] = INVALID_PLAYER_ID;
+
+	/* Time Information */
+	data[iSecond] = gettime();
+	data[iTick] = GetTickCount();
+}

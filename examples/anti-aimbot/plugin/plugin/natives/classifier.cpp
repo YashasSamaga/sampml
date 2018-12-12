@@ -1,31 +1,51 @@
 #include "main.h"
 
+#include <dlib/dnn.h>
 #include "classifier.hpp"
 
 #include <sampml/svm_classifier.hpp>
 #include "transform.hpp"
 
-std::array<transformer, MAX_PLAYERS> transformers;
+ using sample_type = output_vector;
+
+ double test_vector_svm(const output_vector& sample) {
+    static sampml::trainer::svm_classifier<sample_type> svm;
+
+    static bool loaded = false;
+    if (loaded == false) {
+        svm.deserialize("models/svm_classifier.dat");
+        loaded = true;
+    }
+    return svm.test(sample);
+ }
+
+ double test_vector_dnn(const output_vector& sample) {
+    using net_type = dlib::loss_multiclass_log<
+                    dlib::fc<2,
+                    dlib::prelu<dlib::fc<8,
+                    dlib::prelu<dlib::fc<12,
+                    dlib::input<output_vector> 
+                    >>>>>>;
+
+    static net_type net;
+
+    static bool loaded = false;
+    if (loaded == false) {
+            dlib::deserialize("models/dnn_classifier.dat") >> net;
+        loaded = true;
+    }
+    return net(sample);
+ }
 
 namespace natives {
     cell AMX_NATIVE_CALL test_vector(AMX * amx, cell* params)
     {
-        logprintf("test_vector invoked");
         cell playerid = params[1];
         cell *data;
         amx_GetAddr(amx, params[2], &data);
 
-        using sample_type = output_vector;
-        static sampml::trainer::svm_classifier<sample_type> skin_aimbot_classifier;
-
-        static bool loaded = false;
-        if (loaded == false) {
-            skin_aimbot_classifier.deserialize("models/classifier.dat");
-            loaded = true;
-        }
-
         input_vector vector;
-        for (int i = 0; i < 53; i++) {
+        for (int i = 0; i < 54; i++) {
             switch (i) {
             case 0:
             case 15:
@@ -44,10 +64,11 @@ namespace natives {
             case 35:
             case 36:
             case 37:
-            case 47:
-            case 49:
-            case 51:
+            case 38:
+            case 48:
+            case 50:
             case 52:
+            case 53:
                 vector(i) = (data[i]);
                 break;
             default:
@@ -55,17 +76,20 @@ namespace natives {
             }
         }
 
+        static std::array<transformer, MAX_PLAYERS> transformers;
+
         transformers[playerid].submit(vector);
         if (transformers[playerid].pool.size()) {
-            logprintf("obtained a transformed vector");
             auto sample = transformers[playerid].pool.back();
             transformers[playerid].pool.pop_back();
 
-            float prob = skin_aimbot_classifier.test(sample);
-            cell *ref;
-            amx_GetAddr(amx, params[3], &ref);
-            logprintf("prob: %f", prob);
-            *ref = amx_ftoc(prob);
+            float prob_svm = test_vector_svm(sample),
+                  prob_dnn = test_vector_dnn(sample);
+
+            cell *prob_arr;
+            amx_GetAddr(amx, params[3], &prob_arr);
+            prob_arr[0] = amx_ftoc(prob_svm);
+            prob_arr[1] = amx_ftoc(prob_dnn);
             return true;
         }
         return false;
