@@ -1,3 +1,6 @@
+#ifndef ANTIAIMBOT_TRANSFORM_HPP
+#define ANTIAIMBOT_TRANSFORM_HPP
+
 #include <vector>
 #include <cmath>
 #include <cassert>
@@ -8,7 +11,7 @@
 #include "samp.hpp"
 
 /* sequence in which the information is provided by the data vector */
-using input_vector = sampml::feature_vector<double, 54>;
+using input_vector = sampml::feature_vector<double, 56>;
 enum {
 	bHit,
 	
@@ -26,8 +29,8 @@ enum {
 	fShooterCameraFVY,
 	fShooterCameraFVZ,
 	fShooterCameraZoom,
-    //fShooterCameraAspectRatio,
-    //iShooterCameraMode,
+    fShooterCameraAspectRatio,
+    iShooterCameraMode,
 	
 	fShooterFacingAngle,
 	
@@ -142,93 +145,92 @@ struct translated_input {
 
     int second;
     int tick;
+
+    translated_input(const input_vector& input) {
+        hit = input(bHit);
+
+        shooter.in_vehicle = input(bShooterInVehicle);
+        shooter.surfing_object =  input(bShooterSurfingObject);
+        shooter.surfing_vehicle = input(bShooterSurfingVehicle);
+        shooter.state = input(iShooterState);
+        shooter.special_action = input(iShooterSpecialAction);
+        shooter.weapon = input(iShooterWeaponID);
+        shooter.skin = input(iShooterSkinID);
+        shooter.id = input(iShooterID);
+
+        shooter.position.x() = input(fShooterPosX);
+        shooter.position.y() = input(fShooterPosY);
+        shooter.position.z() = input(fShooterPosZ);
+
+        shooter.velocity.x() = input(fShooterVelocityX);
+        shooter.velocity.y() = input(fShooterVelocityY);
+        shooter.velocity.z() = input(fShooterVelocityZ);
+
+        shooter.facing_angle = input(fShooterFacingAngle);
+
+        shooter.camera.position.x() = input(fShooterCameraPosX);
+        shooter.camera.position.y() = input(fShooterCameraPosY);
+        shooter.camera.position.z() = input(fShooterCameraPosZ);
+
+        shooter.camera.FV.x() = input(fShooterCameraFVX);
+        shooter.camera.FV.y() = input(fShooterCameraFVY);
+        shooter.camera.FV.z() = input(fShooterCameraFVZ);
+
+        shooter.camera.zoom = input(fShooterCameraZoom);
+        shooter.camera.mode = input(iShooterCameraMode);
+        shooter.camera.aspect_ratio = input(fShooterCameraAspectRatio);
+
+        shooter.network.ping = input(iShooterPing);
+        shooter.network.packet_loss = input(fShooterPacketLoss);
+
+        /* Victim Information */
+        victim.in_vehicle = input(bVictimInVehicle);
+        victim.surfing_object = input(bVictimSurfingObject);
+        victim.surfing_vehicle = input(bVictimSurfingVehicle);
+        victim.state = input(iVictimState);
+        victim.special_action = input(iVictimSpecialAction);
+        victim.weapon = input(iVictimWeaponID);
+        victim.skin = input(iVictimSkinID);
+        victim.id = input(iVictimID);
+
+        victim.position.x() = input(fVictimPosX);
+        victim.position.y() = input(fVictimPosY); 
+        victim.position.z() = input(fVictimPosZ);
+
+        victim.velocity.x() = input(fVictimVelocityX);
+        victim.velocity.y() = input(fVictimVelocityY);
+        victim.velocity.z() = input(fVictimVelocityZ);
+
+        victim.facing_angle = input(fVictimFacingAngle);
+
+        victim.network.ping = input(iVictimPing);
+        victim.network.packet_loss = input(fVictimPacketLoss);
+
+        /* Shot Information */
+        shot.hit_type = input(iHitType);
+
+        shot.offset.x() = input(fOffsetX);
+        shot.offset.y() = input(fOffsetY);
+        shot.offset.z() = input(fOffsetZ);
+
+        shot.origin.x() = input(fOriginX);
+        shot.origin.y() = input(fOriginY);
+        shot.origin.z() = input(fOriginZ);
+
+        shot.hit_pos.x() = input(fHitPosX);
+        shot.hit_pos.y() = input(fHitPosY);
+        shot.hit_pos.z() = input(fHitPosZ);
+
+        /* Time information */
+        second = input(iSecond);
+        tick = input(iTick);
+    }
 };
 
-void translate(const input_vector& input, translated_input& output) {
-    output.hit = input(bHit);
-
-    output.shooter.in_vehicle = input(bShooterInVehicle);
-    output.shooter.surfing_object =  input(bShooterSurfingObject);
-    output.shooter.surfing_vehicle = input(bShooterSurfingVehicle);
-    output.shooter.state = input(iShooterState);
-    output.shooter.special_action = input(iShooterSpecialAction);
-    output.shooter.weapon = input(iShooterWeaponID);
-    output.shooter.skin = input(iShooterSkinID);
-    output.shooter.id = input(iShooterID);
-
-    output.shooter.position.x() = input(fShooterPosX);
-    output.shooter.position.y() = input(fShooterPosY);
-    output.shooter.position.z() = input(fShooterPosZ);
-
-    output.shooter.velocity.x() = input(fShooterVelocityX);
-    output.shooter.velocity.y() = input(fShooterVelocityY);
-    output.shooter.velocity.z() = input(fShooterVelocityZ);
-
-    output.shooter.facing_angle = input(fShooterFacingAngle);
-
-    output.shooter.camera.position.x() = input(fShooterCameraPosX);
-    output.shooter.camera.position.y() = input(fShooterCameraPosY);
-    output.shooter.camera.position.z() = input(fShooterCameraPosZ);
-
-    output.shooter.camera.FV.x() = input(fShooterCameraFVX);
-    output.shooter.camera.FV.y() = input(fShooterCameraFVY);
-    output.shooter.camera.FV.z() = input(fShooterCameraFVZ);
-
-    output.shooter.camera.zoom = input(fShooterCameraZoom);
-    output.shooter.camera.mode = samp::CAMERA_WEAPON_AIM; //input(iShooterCameraMode);
-    output.shooter.camera.aspect_ratio = 1.6; //input(fShooterCameraAspectRatio);
-
-    output.shooter.network.ping = input(iShooterPing);
-    output.shooter.network.packet_loss = input(fShooterPacketLoss);
-
-    /* Victim Information */
-    output.victim.in_vehicle = input(bVictimInVehicle);
-    output.victim.surfing_object = input(bVictimSurfingObject);
-    output.victim.surfing_vehicle = input(bVictimSurfingVehicle);
-    output.victim.state = input(iVictimState);
-    output.victim.special_action = input(iVictimSpecialAction);
-    output.victim.weapon = input(iVictimWeaponID);
-    output.victim.skin = input(iVictimSkinID);
-    output.victim.id = input(iVictimID);
-
-    output.victim.position.x() = input(fVictimPosX);
-    output.victim.position.y() = input(fVictimPosY); 
-    output.victim.position.z() = input(fVictimPosZ);
-
-    output.victim.velocity.x() = input(fVictimVelocityX);
-    output.victim.velocity.y() = input(fVictimVelocityY);
-    output.victim.velocity.z() = input(fVictimVelocityZ);
-
-    output.victim.facing_angle = input(fVictimFacingAngle);
-
-    output.victim.network.ping = input(iVictimPing);
-    output.victim.network.packet_loss = input(fVictimPacketLoss);
-
-    /* Shot Information */
-    output.shot.hit_type = input(iHitType);
-
-    output.shot.offset.x() = input(fOffsetX);
-    output.shot.offset.y() = input(fOffsetY);
-    output.shot.offset.z() = input(fOffsetZ);
-
-    output.shot.origin.x() = input(fOriginX);
-    output.shot.origin.y() = input(fOriginY);
-    output.shot.origin.z() = input(fOriginZ);
-
-    output.shot.hit_pos.x() = input(fHitPosX);
-    output.shot.hit_pos.y() = input(fHitPosY);
-    output.shot.hit_pos.z() = input(fHitPosZ);
-
-    /* Time information */
-    output.second = input(iSecond);
-    output.tick = input(iTick);
-}
-
-/* the information which we wish to use for training */
 using output_vector = sampml::feature_vector<double, 16>;
+#if 0
+/* the information which we wish to use for training */
 struct features {
-	static constexpr long SHOTS_PER_SAMPLE = 8;
-
     /*
     ** LOS = Line Of Shot
     ** LOC = Line Of player Centers
@@ -243,7 +245,7 @@ struct features {
     ** Z also alters slightly.
     **
     ** Z variations decrease as the distance between the players increases and hence becomes an
-    ** ineffective gauge of aimbot usage
+    ** ineffective gauge of aimbot usage unless compensated
     */
 
     /*
@@ -309,9 +311,11 @@ struct features {
     double AllMissLOCLOSAngleDeltaMean,
            AllMissLOCLOSAngleDeltaStdDev;
 };
+#endif
 
 class transformer {
     public:
+        transformer() : filter_out{0}, count_out{0}, ratio_out{0} { }
         std::vector<output_vector> pool;
 
         template<class Container>
@@ -322,19 +326,22 @@ class transformer {
 
         template<class Container = input_vector>
         void submit(const input_vector& raw_input) {
-            translated_input input;
-            translate(raw_input, input);
+            translated_input input(raw_input);
 
-            if(filter(input))
-                return;            
+            if(filter(input)) {
+                filter_out++;
+                return;        
+            }    
 
             bool try_process = preprocess(input);
 
             if(try_process)
                 process();
         }       
-
-    private:
+        int filter_out;
+        int count_out;
+        int ratio_out;
+    private:    
         bool filter(translated_input& input) {
             if(input.shooter.weapon != 31
             || input.shooter.state != samp::PLAYER_STATE_ONFOOT
@@ -347,24 +354,30 @@ class transformer {
             || input.victim.in_vehicle
             || input.victim.surfing_object
             || input.victim.surfing_vehicle
+            || std::abs((input.victim.velocity - input.shooter.velocity).length()) < 0.02
             || input.victim.velocity.length() < 0.02
             || input.shooter.camera.mode != samp::CAMERA_WEAPON_AIM
             || (input.shooter.position - input.victim.position).length() < 10.0
             || (input.shooter.position - input.victim.position).length() > 40.0
             || (input.hit == false && shot_status.size() == 0)
             ) {
+                process(true);
                 reset();
                 return true;
             }
 
             if((input.hit && prev_victimid != samp::INVALID_PLAYER_ID && prev_victimid != input.victim.id)
             || (prev_tick != -1 && input.tick - prev_tick > 500)) {
+                process(true);
                 reset();
                 if (input.hit == false)
                     return true;
             }
+            prev_victimid = input.victim.id;
 
-			prev_victimid = input.victim.id;
+            if(input.tick - prev_tick < 200)
+                return true;
+			
             prev_tick = input.tick;
             return false;
         }
@@ -398,12 +411,12 @@ class transformer {
             transformed_camera_axis.z() = camera_axis.dot(z_axis);         
 
             const double scaleY = (input.shooter.camera.aspect_ratio > 1.375) ? 0.4 : 0.525;
-            const double pX = ((340.0/640.0) - 0.5) * 2.0 * 0.7,
-                         pZ = ((225.0/480.0) - 0.5) * 2.0 * scaleY;
+            const double pX = ((335.0/640.0) - 0.5) * 2.0 * 0.7,
+                         pZ = ((195.0/448.0) - 0.5) * 2.0 * scaleY;
 
             vector_3d reticle_axis;
             reticle_axis = dlib::normalize(camera_axis + right_vector * pX + up_vector * pZ);
-            
+
             vector_3d transformed_reticle_axis;
             transformed_reticle_axis.x() = reticle_axis.dot(perpendicular_axis);
             transformed_reticle_axis.y() = reticle_axis.dot(parallel_axis);
@@ -412,6 +425,7 @@ class transformer {
             shot_status.push_back(input.hit);
             shot_timestamp.push_back(input.tick);
             shooter_facing_angles.push_back(input.shooter.facing_angle);
+            original_victim_velocities.push_back(input.victim.velocity);
             transformed_shooter_velocities.push_back(transformed_shooter_velocity);
             transformed_victim_velocities.push_back(transformed_victim_velocity);
             transformed_line_of_centers.push_back(vector_3d(0.0, line_of_centers.length(), 0.0));
@@ -419,17 +433,23 @@ class transformer {
             transformed_camera_axes.push_back(transformed_camera_axis);
             transformed_reticle_axes.push_back(transformed_reticle_axis);
 
-            return (shot_status.size() >= 15);
+            return (shot_status.size() >= 7);
         }
 
-        void process() {
+        void process(bool rejection = false) {
+            if(shot_status.size() < 7)
+                return;
+
             if(shot_status.size() >= 20) {
                 reset();
+                count_out++;
                 return;
             }
 
-            if(shot_status.back() == true)
-                return;
+            if(!rejection) {
+                if(shot_status.back() == true)
+                    return;
+            }           
 
             int shots = shot_status.size();
             for(int i = shot_status.size() - 1; shot_status[i] == false && shot_status[i - 1] == false; i--) {
@@ -444,13 +464,20 @@ class transformer {
                 if(shot_status[i] == false && shot_status[i-1] == true)
                     imisses++;   
 
-            if(misses < 3)
+            if(misses < 2)
                 return;
 
-            if(hits < 3)
+            if(hits < 5)
                 return;
 
-            /* fix series mix TODO ex: ____------ vAngles for aimbot (use running_stats?) */
+            float ratio = float(hits)/shots;
+            if(ratio < 0.4) {
+                ratio_out++;
+                reset();
+                return;
+            } else if(ratio < 0.6) {
+                return;
+            }
 
             output_vector output;
             dlib::matrix<float_element_type, 0, 1> LOCLOSDifferences(shots);
@@ -459,7 +486,7 @@ class transformer {
                 const auto& reticle_axis = transformed_reticle_axes[i];
                 LOCLOSDifferences(i) = std::acos(reticle_axis.dot(line_of_center)/line_of_center.length());
             }
-            output(0) = dlib::mean(LOCLOSDifferences); /* LOCLOSAngleDeltaMean */ /* absolute? TODO */
+            output(0) = dlib::mean(LOCLOSDifferences); /* LOCLOSAngleDeltaMean */
             output(1) = dlib::stddev(LOCLOSDifferences); /* LOCLOSAngleDeltaStdDev */
 
             dlib::matrix<float_element_type, 0, 1> VerticalAngles(shots);
@@ -555,6 +582,7 @@ class transformer {
         std::vector<unsigned int> shot_timestamp;
         std::vector<bool> shot_status;
         std::vector<float_element_type> shooter_facing_angles;
+        std::vector<vector_3d> original_victim_velocities;
         std::vector<vector_3d> transformed_shooter_velocities;
         std::vector<vector_3d> transformed_victim_velocities;
         std::vector<vector_3d> transformed_line_of_centers;
@@ -572,6 +600,7 @@ class transformer {
             shot_timestamp.clear();
             shot_status.clear();
             shooter_facing_angles.clear();
+            original_victim_velocities.clear();
             transformed_shooter_velocities.clear();
             transformed_victim_velocities.clear();
             transformed_line_of_centers.clear();
@@ -580,3 +609,5 @@ class transformer {
             transformed_reticle_axes.clear();
         }
 };
+
+#endif /* ANTIAIMBOT_TRANSFORM_HPP */

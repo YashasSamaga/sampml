@@ -20,8 +20,8 @@ enum E_SHOT_VECTOR {
 	Float:fShooterCameraFVX,
 	Float:fShooterCameraFVY,
 	Float:fShooterCameraFVZ,
-	//Float:fShooterCameraZoom,
-	//Float:fShooterCameraAspectRatio,
+	Float:fShooterCameraZoom,
+	Float:fShooterCameraAspectRatio,
 	iShooterCameraMode,
 	
 	Float:fShooterFacingAngle,
@@ -80,8 +80,7 @@ enum E_SHOT_VECTOR {
 stock EncodeShotVector(data[E_SHOT_VECTOR], buffer[], buffer_size = sizeof(buffer)) {
     static const title[] = "VECTOR";
 	#pragma unused title
-//"%.6f "             /* fShooterCameraAspectRatio*/
-			//"%i "               /* iShooterCameraMode       */
+
 	format( buffer, buffer_size,
 	        "%i "               /* bHit 					*/\
 			"%.6f %.6f %.6f "	/* fShooterPos				*/\
@@ -89,6 +88,8 @@ stock EncodeShotVector(data[E_SHOT_VECTOR], buffer[], buffer_size = sizeof(buffe
 			"%.6f %.6f %.6f "	/* fShooterCameraPos 		*/\
 			"%.6f %.6f %.6f "	/* fShooterCameraFV			*/\
 			"%.6f "             /* fShooterCameraZoom 		*/\
+			"%.6f "             /* fShooterCameraAspectRatio*/\
+			"%i "               /* iShooterCameraMode     	*/\
 			"%.6f "             /* fShooterFacingAngle 		*/\
 			"%i "              	/* iShooterState 			*/\
 			"%i "              	/* iShooterSpecialAction 	*/\
@@ -125,8 +126,8 @@ stock EncodeShotVector(data[E_SHOT_VECTOR], buffer[], buffer_size = sizeof(buffe
 	        data[fShooterCameraPosX], data[fShooterCameraPosY], data[fShooterCameraPosZ],
 	        data[fShooterCameraFVX], data[fShooterCameraFVY], data[fShooterCameraFVZ],
 	        data[fShooterCameraZoom],
-	        //data[fShooterCameraAspectRatio],
-	        //data[iShooterCameraMode],
+	        data[fShooterCameraAspectRatio],
+	        data[iShooterCameraMode],
 	        data[fShooterFacingAngle],
 	        data[iShooterState],
 	        data[iShooterSpecialAction],
@@ -168,7 +169,9 @@ stock CollectDataOPWS(data[E_SHOT_VECTOR], playerid, weaponid, hittype, hitid, F
 
 	GetPlayerCameraPos(playerid, data[fShooterCameraPosX], data[fShooterCameraPosY], data[fShooterCameraPosZ]);
 	GetPlayerCameraFrontVector(playerid, data[fShooterCameraFVX], data[fShooterCameraFVY], data[fShooterCameraFVZ]);
-	//data[fShooterCameraZoom] = GetPlayerCameraZoom(playerid);
+	data[fShooterCameraZoom] = GetPlayerCameraZoom(playerid);
+	data[fShooterCameraAspectRatio] = GetPlayerCameraAspectRatio(playerid);
+	data[iShooterCameraMode] = GetPlayerCameraMode(playerid);
 
 	GetPlayerFacingAngle(playerid, data[fShooterFacingAngle]);
 

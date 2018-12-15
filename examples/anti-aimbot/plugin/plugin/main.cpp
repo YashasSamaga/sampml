@@ -1,12 +1,11 @@
 #include "main.h"
 #include "version.h"
 
-#include <sampml/svm_classifier.hpp>
-
 #include <sdk/amx/amx.h>
 #include <sdk/plugincommon.h>
 
 #include "natives/classifier.hpp"
+#include "iscript.hpp"
 
 extern void *pAMXFunctions;
 logprintf_t logprintf;
@@ -37,13 +36,20 @@ PLUGIN_EXPORT int PLUGIN_CALL AmxLoad(AMX *amx)
 {	
     AMX_NATIVE_INFO PluginNatives[] =
     {
-        {"test_vector", natives::test_vector},
+        {"test_vector", classifier::natives::test_vector},
         {0, 0}
     };
+    iscript::AmxLoad(amx);
 	return amx_Register(amx, PluginNatives, -1);
 }
 
 PLUGIN_EXPORT int PLUGIN_CALL AmxUnload(AMX *amx)
 {	
+    iscript::AmxUnload(amx);
 	return AMX_ERR_NONE;
+}
+
+PLUGIN_EXPORT void PLUGIN_CALL ProcessTick()
+{
+    classifier::ProcessTick();
 }

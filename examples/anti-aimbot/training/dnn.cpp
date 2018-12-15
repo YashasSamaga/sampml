@@ -1,27 +1,15 @@
 #include <iostream>
+#include <vector>
 
 #include <dlib/dnn.h>
-#include <dlib/data_io.h>
-
 #include <sampml/data.hpp>
-#include "transform.hpp"
 
-const std::string model_location = "models/dnn_classifier.dat";
-const std::string positive_train_data = "data/transformed/positive_train.dat";
-const std::string negative_train_data = "data/transformed/negative_train.dat";
-const std::string positive_test_data = "data/transformed/positive_test.dat";
-const std::string negative_test_data = "data/transformed/negative_test.dat";
+#include "common.hpp"
+#include "dnn.hpp"
 
-using net_type = dlib::loss_multiclass_log<
-                    dlib::fc<2,
-                    dlib::prelu<dlib::fc<8,
-                    dlib::prelu<dlib::fc<10,
-                    dlib::input<output_vector> 
-                    >>>>>>;
+void train() {
+    std::cout << "TRAINING:\n";
 
-using sample_type = output_vector;
-
-void train() {    
     sampml::data::reader<sample_type> data_positive_train(positive_train_data);
     sampml::data::reader<sample_type> data_negative_train(negative_train_data);
 
@@ -39,19 +27,22 @@ void train() {
 
     dlib::randomize_samples(training_data, training_labels);
 
-    net_type net;    
-    dlib::dnn_trainer<net_type> trainer(net);
+    aa_network_type net;    
+    dlib::dnn_trainer<aa_network_type> trainer(net);
     trainer.set_learning_rate(0.01);
     trainer.set_min_learning_rate(0.00001);
-    trainer.set_mini_batch_size(64);
-    trainer.set_max_num_epochs(100000); 
+    trainer.set_mini_batch_size(32);
+    trainer.set_max_num_epochs(25000); 
     trainer.be_verbose();
     trainer.train(training_data, training_labels);
     net.clean();
-    dlib::serialize(model_location) << net;
+
+    dlib::serialize(std::string(dnn_model.begin(), dnn_model.end())) << net;
 }
 
 void test() {
+    std::cout << "TESTING:\n";
+
     sampml::data::reader<sample_type> data_positive_test(positive_test_data);
     sampml::data::reader<sample_type> data_negative_test(negative_test_data);
 
@@ -67,8 +58,8 @@ void test() {
         testing_labels.push_back(0);
     }
 
-    net_type net;
-    dlib::deserialize(model_location) >> net;
+    aa_network_type net;
+    dlib::deserialize(std::string(dnn_model.begin(), dnn_model.end())) >> net;
 
     std::vector<unsigned long> predicted_labels = net(testing_data);
     int true_positives = 0,
@@ -92,7 +83,7 @@ void test() {
     }
     int num_correct = true_positives + true_negatives,
         num_wrong = false_positives + false_negatives;
-    std::cout << '\n' << std::endl;
+    std::cout << '\n';
     std::cout << "true positives: " << true_positives << ", false positives: " << false_positives << '\n';
     std::cout << "true negatives: " << true_negatives << ", false negatives: " << false_negatives << '\n';
     std::cout << "number of samples classified corretly: " << num_correct << '\n';

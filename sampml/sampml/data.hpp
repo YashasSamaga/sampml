@@ -1,10 +1,10 @@
 #ifndef SAMPML_INCLUDE_DATA_HPP
 #define SAMPML_INCLUDE_DATA_HPP
 
-#include <fstream>
-#include <iterator>
-#include <sstream>
 #include <vector>
+#include <fstream>
+#include <sstream>
+#include <string_view>
 
 #include <dlib/svm.h>
 
@@ -17,7 +17,7 @@ namespace SAMPML_NAMESPACE {
         class bad_format : public exception::exception {
         public:
             bad_format() : what_message("Bad Input Format") { }
-            bad_format(const std::string& what_message): what_message(what_message) {}
+            bad_format(std::string_view what_message): what_message(what_message) {}
             virtual ~bad_format() { }
 
             virtual const char* what() const throw() {
@@ -31,7 +31,7 @@ namespace SAMPML_NAMESPACE {
         class io_error : public exception::exception {
         public:
             io_error() : what_message("Input/Output Error") { }
-            io_error(const std::string& what_message): what_message(what_message) {}
+            io_error(std::string_view what_message): what_message(what_message) {}
             virtual ~io_error() { }
 
             virtual const char* what() const throw() {
@@ -55,7 +55,7 @@ namespace SAMPML_NAMESPACE {
             using difference_type = typename container_type::difference_type;     
 
             reader() = default;
-            reader(std::string path) { open(path); }
+            reader(std::string_view path) { open(path); }
             reader(const reader& other) : samples(other.samples) { }
             reader(reader&& other) : samples(std::move(other.samples)) { }
 
@@ -73,7 +73,7 @@ namespace SAMPML_NAMESPACE {
                 return *this;
             }
 
-            void open(std::string path) {
+            void open(std::string_view path) {
                 process(path);
             }
 
@@ -102,8 +102,8 @@ namespace SAMPML_NAMESPACE {
             container_type samples;
             
         private:
-            void process(const std::string& path) {
-                std::ifstream input_file(path);
+            void process(std::string_view path) {
+                std::ifstream input_file(std::string(path.begin(), path.end()));
                 if(!input_file.is_open()) { throw io_error(); }
 
                 using T = typename value_type::type;
@@ -148,8 +148,8 @@ namespace SAMPML_NAMESPACE {
         }
 
         template<class container_type>
-        void write(const container_type& samples, const std::string& path) {
-            std::ofstream output_file(path);
+        void write(const container_type& samples, std::string_view path) {
+            std::ofstream output_file(std::string(path.begin(), path.end()));
             if(!output_file.is_open()) { throw io_error(); }
 
             output_file << std::setprecision(6);
@@ -161,4 +161,4 @@ namespace SAMPML_NAMESPACE {
         }
     }
 }
-#endif /* INCLUDE_DATA_HPP */
+#endif /* SAMPML_INCLUDE_DATA_HPP */

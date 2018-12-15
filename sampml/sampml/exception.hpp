@@ -1,3 +1,6 @@
+#ifndef SAMPML_INCLUDE_EXCEPTION_HPP
+#define SAMPML_INCLUDE_EXCEPTION_HPP
+
 #include <exception>   
 
 #include "common.hpp"
@@ -8,7 +11,7 @@ namespace SAMPML_NAMESPACE {
         {
         public:
             exception() : what_message("Unspecified Exception") { }
-            exception(const std::string& what_message): what_message(what_message) {}
+            exception(std::string_view what_message): what_message(what_message) {}
             virtual ~exception() { }
 
             virtual const char* what() const throw() {
@@ -20,3 +23,5 @@ namespace SAMPML_NAMESPACE {
         };
     }
 }
+
+#endif /* SAMPML_INCLUDE_EXCEPTION_HPP */

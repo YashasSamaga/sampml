@@ -1,32 +1,30 @@
-SRCS = svm.cpp dnn.cpp transformer.cpp
+SRCS = svm.cpp dnn.cpp transformer.cpp analyzer.cpp
 INCLUDE_DIRS = -I../../lib/
-CFLAGS = $(INCLUDE_DIRS) -Wall -Wextra -Werror -O3 -std=c++17 -ldlib -lopenblas  -g
+CFLAGS = $(INCLUDE_DIRS) -Wall -Wextra -Werror -march=native -O3 -std=c++17 -ldlib -lopenblas
 CC = g++
 
-.PHONY: all clean
+.PHONY: all clean dnn-clean svm-clean transformer-clean analyzer-clean
 
-all: svm dnn transformer
+all: svm dnn transformer analyzer
 
-depend: .depend
-.depend: $(SRCS)
-	rm -f ./.depend
-	$(CC) $(CFLAGS) -MM $^ > ./.depend;
-include .depend
-
-dnn: dnn.cpp .depend
+dnn: dnn.cpp
 	g++ dnn.cpp -o dnn $(CFLAGS) 
 dnn-clean:
 	rm -f dnn
 
-svm: svm.cpp .depend
+svm: svm.cpp
 	g++ svm.cpp -o svm $(CFLAGS)
 svm-clean:
 	rm -f svm
 
-transformer: transformer.cpp .depend
+transformer: transformer.cpp
 	g++ transformer.cpp -o transformer $(CFLAGS)
 transformer-clean:
 	rm -f transformer
 
-clean: svm-clean dnn-clean transformer-clean
-	rm .depend
+analyzer: analyzer.cpp
+	g++ analyzer.cpp -o analyzer $(CFLAGS)
+analyzer-clean:
+	rm -f analyzer
+
+clean: svm-clean dnn-clean transformer-clean analyzer-clean

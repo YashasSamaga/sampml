@@ -3,7 +3,6 @@
 #include <dlib/svm.h>
 #include <dlib/svm_threaded.h>
 #include <dlib/global_optimization.h>
-#include <dlib/serialize.h>
 
 #include "common.hpp"
 #include "data.hpp"
@@ -13,7 +12,7 @@ namespace SAMPML_NAMESPACE {
         class bad_input : public exception::exception {
         public:
             bad_input() : what_message("Bad Input") { }
-            bad_input(const std::string& what_message): what_message(what_message) {}
+            bad_input(std::string_view what_message): what_message(what_message) {}
             virtual ~bad_input() { }
 
             virtual const char* what() const throw() {
@@ -42,7 +41,7 @@ namespace SAMPML_NAMESPACE {
                 labels.insert(labels.end(), negatives.size(), -1);
             }
             
-            void train () {
+            void train (double beta_squared = 1.0) {
                 if(samples.size() == 0) {
                     throw bad_input("Bad Input: no samples were provided for training");
                 }
@@ -56,7 +55,7 @@ namespace SAMPML_NAMESPACE {
                 dlib::randomize_samples(samples, labels);
 
                 auto cross_validation_score = 
-                [this](double gamma, double cost_positive, double cost_negative) {
+                [this, beta_squared](double gamma, double cost_positive, double cost_negative) {
                     dlib::svm_c_trainer<svm_kernel_type> trainer;
                     trainer.set_kernel(svm_kernel_type(gamma));
                     trainer.set_c_class1(cost_positive);
@@ -65,7 +64,7 @@ namespace SAMPML_NAMESPACE {
                     dlib::matrix<double> result = dlib::cross_validate_trainer(trainer, this->samples, this->labels, 10);
                     std::cout << "gamma: " << gamma << "  c1: " << cost_positive <<  "  c2: " << cost_negative <<  "  cross validation accuracy: " << result;
 
-                    return 2*dlib::prod(result)/dlib::sum(result);
+                    return (1.0 + beta_squared)*dlib::prod(result)/(beta_squared * result(0) + result(1));
                 };
 
                 auto result = dlib::find_max_global(dlib::default_thread_pool(), 
@@ -87,7 +86,7 @@ namespace SAMPML_NAMESPACE {
             }
 
             auto rank_features() {
-                dlib::kcentroid<svm_kernel_type> kc(svm_kernel_type(best_gamma), 0.0001, 512);
+                dlib::kcentroid<svm_kernel_type> kc(svm_kernel_type(best_gamma), 0.0001);
                 return dlib::rank_features(kc, samples, labels);
             } 
 

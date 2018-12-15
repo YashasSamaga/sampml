@@ -6,10 +6,6 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
 {
 	new data[E_SHOT_VECTOR];
     CollectDataOPWS(data, playerid, weaponid, hittype, hitid, fX, fY, fZ);
-
-//	new s[123];
-	//format(s, 123, "dist: %.2f", GetPlayerDistanceFromPoint(playerid, data[fVictimPosX], data[fVictimPosY], data[fVictimPosZ]));
-	//SendClientMessageToAll(-1, s);
 	
 	new Float:prob[2], Float:arr[15];
 	if(test_vector(playerid, data, prob, arr)) {

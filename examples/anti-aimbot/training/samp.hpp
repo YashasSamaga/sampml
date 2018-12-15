@@ -1,3 +1,6 @@
+#ifndef ANTIAIMBOT_SAMP_HPP
+#define ANTIAIMBOT_SAMP_HPP
+
 namespace samp {
 	constexpr int INVALID_PLAYER_ID = 65535;
 
@@ -56,3 +59,5 @@ namespace samp {
 		CAMERA_CHASE_AIR4 = 64 /* Chase camera (for air vehicles only): camera focused on pilot, similar to pressing LOOK_BEHIND key on foot, but in air vehicle */
 	};
 }
+
+#endif /* ANTIAIMBOT_SAMP_HPP */
