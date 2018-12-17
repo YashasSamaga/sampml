@@ -9,20 +9,6 @@
 
 namespace SAMPML_NAMESPACE {
     namespace trainer {
-        class bad_input : public exception::exception {
-        public:
-            bad_input() : what_message("Bad Input") { }
-            bad_input(std::string_view what_message): what_message(what_message) {}
-            virtual ~bad_input() { }
-
-            virtual const char* what() const throw() {
-                return what_message.c_str();
-            }   
-
-        private:
-            const std::string what_message;
-        };
-
         template <class sample_type>
         class svm_classifier {
         public:

@@ -14,34 +14,6 @@
 
 namespace SAMPML_NAMESPACE {
     namespace data {
-        class bad_format : public exception::exception {
-        public:
-            bad_format() : what_message("Bad Input Format") { }
-            bad_format(std::string_view what_message): what_message(what_message) {}
-            virtual ~bad_format() { }
-
-            virtual const char* what() const throw() {
-                return what_message.c_str();
-            }   
-
-        private:
-            const std::string what_message;
-        };
-
-        class io_error : public exception::exception {
-        public:
-            io_error() : what_message("Input/Output Error") { }
-            io_error(std::string_view what_message): what_message(what_message) {}
-            virtual ~io_error() { }
-
-            virtual const char* what() const throw() {
-                return what_message.c_str();
-            }   
-
-        private:
-            const std::string what_message;
-        };
-
         template <class sample_type>
         class reader {
         public:
