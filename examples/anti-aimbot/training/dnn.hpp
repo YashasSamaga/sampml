@@ -9,8 +9,8 @@ using sample_type = output_vector;
 
 using aa_network_type = dlib::loss_multiclass_log<
                     dlib::fc<2,
-                    dlib::prelu<dlib::fc<8,
                     dlib::prelu<dlib::fc<10,
+                    dlib::prelu<dlib::fc<8,
                     dlib::input<sample_type> 
                     >>>>>>;
 

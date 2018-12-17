@@ -3,9 +3,9 @@ INCLUDE_DIRS = -I../../lib/
 CFLAGS = $(INCLUDE_DIRS) -Wall -Wextra -Werror -march=native -O3 -std=c++17 -ldlib -lopenblas
 CC = g++
 
-.PHONY: all clean dnn-clean svm-clean transformer-clean analyzer-clean
+.PHONY: all clean dnn-clean svm-clean transformer-clean analyzer-clean combined-clean
 
-all: svm dnn transformer analyzer
+all: dnn svm rf transformer analyzer combined
 
 dnn: dnn.cpp
 	g++ dnn.cpp -o dnn $(CFLAGS) 
@@ -17,6 +17,11 @@ svm: svm.cpp
 svm-clean:
 	rm -f svm
 
+rf: rf.cpp
+	g++ rf.cpp -o rf $(CFLAGS)
+rf-clean:
+	rm -f rf
+
 transformer: transformer.cpp
 	g++ transformer.cpp -o transformer $(CFLAGS)
 transformer-clean:
@@ -27,4 +32,9 @@ analyzer: analyzer.cpp
 analyzer-clean:
 	rm -f analyzer
 
-clean: svm-clean dnn-clean transformer-clean analyzer-clean
+combined: combined.cpp
+	g++ combined.cpp -o combined $(CFLAGS)
+combined-clean:
+	rm -f combined
+
+clean: dnn-clean svm-clean rf-clean transformer-clean analyzer-clean combined-clean

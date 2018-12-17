@@ -16,5 +16,6 @@ constexpr std::string_view negative_test_data = "data/transformed/negative_test.
 /* model locations */
 constexpr std::string_view svm_model = "models/svm_classifier.dat";
 constexpr std::string_view dnn_model = "models/dnn_classifier.dat";
+constexpr std::string_view rf_model = "models/rf_classifier.dat";
 
 #endif /* ANTIAIMBOT_COMMON_HPP */

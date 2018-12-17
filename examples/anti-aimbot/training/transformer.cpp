@@ -20,7 +20,6 @@ void transform(float training_fraction = 0.7) {
     std::vector<output_vector> samples_positive;
     data_transform(data_positive, samples_positive);
     dlib::randomize_samples(samples_positive);
-    samples_positive.resize(62);
 
     int training_count = training_fraction * samples_positive.size();
     std::vector<output_vector> samples_train_positive(samples_positive.begin(), 

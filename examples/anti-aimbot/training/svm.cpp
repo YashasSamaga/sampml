@@ -5,8 +5,8 @@
 #include <dlib/geometry.h>
 #include <dlib/statistics.h>
 
-#include "sampml/data.hpp"
-#include "sampml/svm_classifier.hpp"
+#include <sampml/data.hpp>
+#include <sampml/svm_classifier.hpp>
 
 #include "common.hpp"
 #include "transform.hpp"

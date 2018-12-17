@@ -32,7 +32,7 @@ void train() {
     trainer.set_learning_rate(0.01);
     trainer.set_min_learning_rate(0.00001);
     trainer.set_mini_batch_size(32);
-    trainer.set_max_num_epochs(25000); 
+    trainer.set_max_num_epochs(10000); 
     trainer.be_verbose();
     trainer.train(training_data, training_labels);
     net.clean();
