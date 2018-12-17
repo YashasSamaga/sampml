@@ -1,9 +1,12 @@
 #include "main.h"
 #include "version.h"
 
+#include <iostream>
+#include <thread>
+
 #include <sdk/amx/amx.h>
 #include <sdk/plugincommon.h>
-
+#include <cassert>
 #include "natives/classifier.hpp"
 #include "iscript.hpp"
 
@@ -14,11 +17,12 @@ PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData)
 {	
 	pAMXFunctions = ppData[PLUGIN_DATA_AMX_EXPORTS];
 	logprintf = (logprintf_t)ppData[PLUGIN_DATA_LOGPRINTF];
-	 
 	logprintf("***********************************************************");
 	logprintf("  AntiAimbot v%d.%d.%d loaded", PLUGIN_MAJOR_VERSION, PLUGIN_MINOR_VERSION, PLUGIN_PATCH_VERSION);
 	logprintf("  Version Key: %h", PLUGIN_VERSION_KEY);
 	logprintf("***********************************************************");
+
+    classifier::Load();
 	return true;
 }
 
@@ -36,9 +40,10 @@ PLUGIN_EXPORT int PLUGIN_CALL AmxLoad(AMX *amx)
 {	
     AMX_NATIVE_INFO PluginNatives[] =
     {
-        {"test_vector", classifier::natives::test_vector},
+        {"submit_vector", classifier::natives::submit_vector},
         {0, 0}
     };
+
     iscript::AmxLoad(amx);
 	return amx_Register(amx, PluginNatives, -1);
 }

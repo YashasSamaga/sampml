@@ -2,8 +2,8 @@
 
 namespace classifier {
     extern void ProcessTick();
-
+    extern void Load();
     namespace natives {
-        extern cell AMX_NATIVE_CALL test_vector(AMX * amx, cell* params);
+        extern cell AMX_NATIVE_CALL submit_vector(AMX * amx, cell* params);
     }
 }

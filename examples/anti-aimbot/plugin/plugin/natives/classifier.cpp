@@ -12,21 +12,6 @@
 namespace classifier {
     using sample_type = output_vector;
 
-    struct queue_item_tag_t {
-        int playerid;
-        AMX *amx;
-    };
-
-    struct input_queue_item_t {
-        sample_type sample;
-        queue_item_tag_t tag;
-    };
-
-    struct output_queue_item_t {
-        float probabilities[2];
-        queue_item_tag_t tag;
-    };
-
     double test_vector_svm(const sample_type& sample) {
         static thread_local sampml::trainer::svm_classifier<sample_type> svm;
         static thread_local bool loaded = false;
@@ -47,16 +32,39 @@ namespace classifier {
         return net(sample);
     }
 
+    struct queue_item_tag_t {
+        int playerid;
+        AMX *amx;
+    };
+
+    struct input_queue_item_t {
+        sample_type sample;
+        queue_item_tag_t tag;
+    };
+
+    struct output_queue_item_t {
+        float probabilities[2];
+        queue_item_tag_t tag;
+    };
+
     struct process_functor_t {
         void operator()(input_queue_item_t& input, output_queue_item_t& output) {
+            auto start = std::chrono::steady_clock::now();
             sample_type& sample = input.sample;
             output.probabilities[0] = test_vector_svm(sample);
+            auto svm = std::chrono::steady_clock::now();
             output.probabilities[1] = test_vector_dnn(sample);
             output.tag = input.tag;
+            auto dnn = std::chrono::steady_clock::now();
+            std::cout << "Timings: " << std::chrono::duration_cast<std::chrono::microseconds>(svm - start).count() << " " << std::chrono::duration_cast<std::chrono::microseconds>(dnn - svm).count();
         }
     };
 
-    fixed_thread_pool<input_queue_item_t, output_queue_item_t, process_functor_t> pool(2);
+    fixed_thread_pool<input_queue_item_t, output_queue_item_t, process_functor_t> pool;
+    void Load() {
+        pool.start(2);
+    }
+
     void ProcessTick() {
         std::vector<output_queue_item_t> results;
         pool.deqeue_all(results);
@@ -65,7 +73,7 @@ namespace classifier {
             AMX* amx = item.tag.amx;
             if (iscript::IsValidAmx(amx)) {
                 int cb_idx = -1;
-                if (amx_FindPublic(amx, "OnPlayerSuspectedForAimbot", &cb_idx) != AMX_ERR_NONE || cb_idx < 0) {
+                if (amx_FindPublic(amx, "OnPlayerSuspectedForAimbot", &cb_idx) == AMX_ERR_NONE) {
                     // OnPlayerSuspectedForAimbot(playerid, Float:probablities[2])
                     cell probablities[2] = { amx_ftoc(item.probabilities[0]), amx_ftoc(item.probabilities[1]) };
                     cell amx_addr, *phys_addr;
@@ -116,7 +124,7 @@ namespace classifier {
             return vector;
         }
 
-        cell AMX_NATIVE_CALL test_vector(AMX * amx, cell* params)
+        cell AMX_NATIVE_CALL submit_vector(AMX * amx, cell* params)
         {
             cell playerid = params[1];
             cell *data;
@@ -128,16 +136,12 @@ namespace classifier {
 
             transformers[playerid].submit(vector);
             if (transformers[playerid].pool.size()) {
-                auto sample = transformers[playerid].pool.back();
+                input_queue_item_t item;
+                item.sample = transformers[playerid].pool.back();
+                item.tag.amx = amx;
+                item.tag.playerid = playerid;
                 transformers[playerid].pool.pop_back();
-
-                float prob_svm = test_vector_svm(sample),
-                    prob_dnn = test_vector_dnn(sample);
-
-                cell *prob_arr;
-                amx_GetAddr(amx, params[3], &prob_arr);
-                prob_arr[0] = amx_ftoc(prob_svm);
-                prob_arr[1] = amx_ftoc(prob_dnn);
+                pool.enqueue(item);
                 return true;
             }
             return false;
