@@ -10,12 +10,17 @@ public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY
  	return 1;
 }
 
-forward OnPlayerSuspectedForAimbot(playerid, Float:probablities[2]);
-public OnPlayerSuspectedForAimbot(playerid, Float:probablities[2])
+forward OnPlayerSuspectedForAimbot(playerid, Float:probabilities[3], time[3]);
+public OnPlayerSuspectedForAimbot(playerid, Float:probabilities[3], time[3])
 {
     static const colors[] = { 0x0000FFFF, 0xFF0000FF,0x00FF00FF };
 
-	new str[144];
- 	format(str, sizeof(str), "Aimbot [%d] >> SVM: %.3f, DNN: %.3f", playerid, probablities[0], probablities[1]);
+	new str[144], name[MAX_PLAYER_NAME];
+	GetPlayerName(playerid, name, sizeof(name));
+ 	format(str, sizeof(str), "%s(%d) >> RF: %.3f (%.3fms) SVM: %.3f (%.3fms), DNN: %.3f (%.3fms)",
+	 						name, playerid,
+	 						probabilities[0], time[0]/1000.0,
+	 						probabilities[1], time[1]/1000.0,
+	  						probabilities[2], time[2]/1000.0);
 	SendClientMessageToAll(colors[playerid%sizeof(colors)], str);
 }
