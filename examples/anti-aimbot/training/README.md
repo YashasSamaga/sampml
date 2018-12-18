@@ -39,11 +39,15 @@
   - evaluates the model using the testing set and prints the statistics
 - combined (`combined.cpp`)
   - pools together results from multiple detectors and gives a final result
+- standalone tester (`standalone_tester.cpp`)
+  - takes a raw data (`test.dat`) and produces transformed data (`test_transformed.dat`)
+  - runs a combined detector on the transformed data and reports results
+  - used to classify a player's data as probable aimbot or not offline
   
 The programs can be built using the `Makefile` provided. 
 - `make all`, `make clean`
-- `make transformer`, `make analyzer`, `make rf`, `make svm`, `make dnn`, `make combined`
-- `make transformer-clean`, `make analyzer-clean`, `make rf-clean`, `make svm-clean`, `make dnn-clean`, `make combined-clean`
+- `make transformer`, `make analyzer`, `make rf`, `make svm`, `make dnn`, `make combined`, ...
+- `make transformer-clean`, `make analyzer-clean`, `make rf-clean`, `make svm-clean`, `make dnn-clean`, `make combined-clean`, ...
 
 ## building models
 
