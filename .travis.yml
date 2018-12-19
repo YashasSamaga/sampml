@@ -18,13 +18,18 @@ env:
     - ALTERNATE_CC=gcc-7
     - ALTERNATE_CXX=g++-7
     - MAKE_THREADS=2
+    
+cache:
+    directories:
+     - OpenBLAS-0.3.4
+     - dlib-19.16
 
 before_install:
-  - wget https://github.com/xianyi/OpenBLAS/archive/v0.3.4.tar.gz
-  - tar xf v0.3.4.tar.gz
+  - if [ ! -d "OpenBLAS-0.3.4" ]; then wget https://github.com/xianyi/OpenBLAS/archive/v0.3.4.tar.gz; fi
+  - if [ ! -d "OpenBLAS-0.3.4" ]; then tar xf v0.3.4.tar.gz; fi
 
-  - wget "https://github.com/davisking/dlib/archive/v19.16.tar.gz"
-  - tar xf v19.16.tar.gz
+  - if [ ! -d "dlib-19.16" ]; then wget "https://github.com/davisking/dlib/archive/v19.16.tar.gz"; fi
+  - if [ ! -d "dlib-19.16" ]; then tar xf v19.16.tar.gz; fi
 
 install:
   - cd OpenBLAS-0.3.4
@@ -48,7 +53,7 @@ script:
   
   - echo "Building and testing training tools"
   - cd training
-  - make  CXX=$LATEST_CXX -j $MAKE_THREADS
+  - make  CXX=$ALTERNATE_CXX -j $MAKE_THREADS
   - time ./transformer
   - time ./analyzer
   - time ./svm
@@ -61,7 +66,7 @@ script:
   - cd ../plugin
   - mkdir build
   - cd build
-  - cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=$LATEST_CC -DCMAKE_CXX_COMPILER=$LATEST_CXX
+  - cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=$ALTERNATE_CC -DCMAKE_CXX_COMPILER=$ALTERNATE_CXX
   - cmake --build . -- -j $MAKE_THREADS
   
   - cd ../../../
