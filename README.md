@@ -1,5 +1,14 @@
 # sampml
-Machine learning tools for SAMP
+| Travis CI | AppVeyor CI |
+| --------- | ----------- |
+| [![Build Status](https://travis-ci.org/YashasSamaga/sampml.svg?branch=master)](https://travis-ci.org/YashasSamaga/sampml) | [![Build status](https://ci.appveyor.com/api/projects/status/us7n7fx75qlblyg3?svg=true)](https://ci.appveyor.com/project/YashasSamaga/sampml) |
+
+---
+
+simplified machine learning toolkit and associated SAMP projects 
+
+### Projects:
+ - Anti Aimbot (`examples/anti-aimbot`)
 
 ## Requirements
 
