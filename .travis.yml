@@ -7,7 +7,6 @@ addons:
     sources:
         - ubuntu-toolchain-r-test
     packages:
-        - cmake
         - gfortran
         - gcc-7
         - g++-7
@@ -25,11 +24,11 @@ cache:
      - dlib-19.16
 
 before_install:
-  - if [ ! -d "OpenBLAS-0.3.4" ]; then wget https://github.com/xianyi/OpenBLAS/archive/v0.3.4.tar.gz; fi
-  - if [ ! -d "OpenBLAS-0.3.4" ]; then tar xf v0.3.4.tar.gz; fi
+  - if [ ! -f "OpenBLAS-0.3.4/Makefile" ]; then wget https://github.com/xianyi/OpenBLAS/archive/v0.3.4.tar.gz; fi
+  - if [ ! -f "OpenBLAS-0.3.4/Makefile" ]; then tar xf v0.3.4.tar.gz; fi
 
-  - if [ ! -d "dlib-19.16" ]; then wget "https://github.com/davisking/dlib/archive/v19.16.tar.gz"; fi
-  - if [ ! -d "dlib-19.16" ]; then tar xf v19.16.tar.gz; fi
+  - if [ ! -f "dlib-19.16/CMakeLists.txt" ]; then wget "https://github.com/davisking/dlib/archive/v19.16.tar.gz"; fi
+  - if [ ! -f "dlib-19.16/CMakeLists.txt" ]; then tar xf v19.16.tar.gz; fi
 
 install:
   - cd OpenBLAS-0.3.4
