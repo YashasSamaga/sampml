@@ -40,7 +40,7 @@ install:
   - cd dlib-19.16/build
   - cmake .. -DBUILD_SHARED_LIBS=ON -DDLIB_JPEG_SUPPORT=OFF -DDLIB_PNG_SUPPORT=OFF -DDLIB_NO_GUI_SUPPORT=ON
   - cmake --build . --config Release -- -j $MAKE_THREADS
-  - sudo cmake --build . --target install
+  - sudo make install
   - sudo ldconfig
   - cd ../..
   
