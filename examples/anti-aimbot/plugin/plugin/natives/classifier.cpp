@@ -73,7 +73,6 @@ namespace classifier {
             output.time[0] = std::chrono::duration_cast<std::chrono::microseconds>(rf - start).count();
             output.time[1] = std::chrono::duration_cast<std::chrono::microseconds>(svm - rf).count();
             output.time[2] = std::chrono::duration_cast<std::chrono::microseconds>(dnn - svm).count();
-            std::cout << "Timings (in us): " << "RF: " << output.time[0] << "SVM: " << output.time[1] << "DNN: " << output.time[2] << std::endl;
         }
     };
 

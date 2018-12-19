@@ -33,8 +33,9 @@ void train() {
     trainer.set_min_learning_rate(0.00001);
     trainer.set_mini_batch_size(32);
     trainer.set_max_num_epochs(10000); 
-    trainer.be_verbose();
+    //trainer.be_verbose();
     trainer.train(training_data, training_labels);
+    std::cout << "average loss: " << trainer.get_average_loss() << "\n\n";
     net.clean();
 
     dlib::serialize(std::string(dnn_model.begin(), dnn_model.end())) << net;
@@ -83,12 +84,11 @@ void test() {
     }
     int num_correct = true_positives + true_negatives,
         num_wrong = false_positives + false_negatives;
-    std::cout << '\n';
     std::cout << "true positives: " << true_positives << ", false positives: " << false_positives << '\n';
     std::cout << "true negatives: " << true_negatives << ", false negatives: " << false_negatives << '\n';
     std::cout << "number of samples classified corretly: " << num_correct << '\n';
     std::cout << "number of samples classified incorrectly: " << num_wrong << '\n';
-    std::cout << "accuracy: " << num_correct/float(num_correct + num_wrong);
+    std::cout << "accuracy: " << num_correct/float(num_correct + num_wrong) << std::endl;
 
     /* FOR dlib::loss_binary_log
         std::vector<float> predicted_labels = net(training_data);

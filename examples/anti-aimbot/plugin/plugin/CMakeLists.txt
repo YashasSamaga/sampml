@@ -17,34 +17,20 @@ add_samp_plugin(plugin
 	exports.def
 )
 
-if(CMAKE_COMPILER_IS_GNUXX)
-	target_link_libraries(plugin
-		PRIVATE
-		dlib::dlib
-		m # std math library
-	)
-endif()
-
 target_include_directories(plugin
 	PRIVATE
 	${LIBRARY_SOURCE_DIR}
 	${PLUGIN_SOURCE_DIR}
 )
 
+
 target_compile_definitions(plugin
 	PRIVATE	
 	PLUGIN_MAJOR_VERSION=${PROJECT_VERSION_MAJOR}
 	PLUGIN_MINOR_VERSION=${PROJECT_VERSION_MINOR}
 	PLUGIN_PATCH_VERSION=${PROJECT_VERSION_PATCH}
+	DLIB_NO_GUI_SUPPORT
 )
-
-if(MSVC)
-	target_compile_definitions(plugin
-		PRIVATE	
-		_CRT_SECURE_NO_WARNINGS
-		NOMINMAX
-	)
-endif()
 
 set_target_properties(plugin PROPERTIES 
 	OUTPUT_NAME "AntiAimbot"
@@ -54,18 +40,18 @@ set_target_properties(plugin PROPERTIES
 	FIND_LIBRARY_USE_LIB64_PATHS OFF
 )
 
+
 if(CMAKE_COMPILER_IS_GNUXX)
-	target_compile_options(plugin
-		PRIVATE
-		-fvisibility=hidden
-	)
-elseif(MSVC)
-	target_compile_options(plugin 
-		PRIVATE
-		/std:c++17
-	)
+	target_link_libraries(plugin PRIVATE m)
+	target_compile_options(plugin PRIVATE -fvisibility=hidden -std=c++17)
 endif()
 
-target_compile_features(plugin 
-	PRIVATE
-)
+if(MSVC)
+	target_compile_definitions(plugin
+		PRIVATE	
+		_CRT_SECURE_NO_WARNINGS
+		NOMINMAX
+	)
+	
+	target_compile_options(plugin PRIVATE /std:c++17)
+endif()

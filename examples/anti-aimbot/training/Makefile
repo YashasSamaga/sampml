@@ -1,44 +1,43 @@
 SRCS = svm.cpp dnn.cpp transformer.cpp analyzer.cpp
-INCLUDE_DIRS = -I../../lib/
-CFLAGS = $(INCLUDE_DIRS) -Wall -Wextra -Werror -march=native -O3 -std=c++17 -ldlib -lopenblas
-CC = g++
+INCLUDE_DIRS = -I../../../sampml/
+CXXFLAGS = $(INCLUDE_DIRS) -Wall -Wextra -Werror -O3 -ldlib -lopenblas -std=c++17
 
 .PHONY: all clean dnn-clean svm-clean transformer-clean analyzer-clean combined-clean standalone_tester-clean
 
 all: dnn svm rf transformer analyzer combined standalone_tester
 
 dnn: dnn.cpp
-	g++ dnn.cpp -o dnn $(CFLAGS) 
+	$(CXX) dnn.cpp -o dnn $(CXXFLAGS) 
 dnn-clean:
 	rm -f dnn
 
 svm: svm.cpp
-	g++ svm.cpp -o svm $(CFLAGS)
+	$(CXX) svm.cpp -o svm $(CXXFLAGS)
 svm-clean:
 	rm -f svm
 
 rf: rf.cpp
-	g++ rf.cpp -o rf $(CFLAGS)
+	$(CXX) rf.cpp -o rf $(CXXFLAGS)
 rf-clean:
 	rm -f rf
 
 transformer: transformer.cpp
-	g++ transformer.cpp -o transformer $(CFLAGS)
+	$(CXX) transformer.cpp -o transformer $(CXXFLAGS)
 transformer-clean:
 	rm -f transformer
 
 analyzer: analyzer.cpp
-	g++ analyzer.cpp -o analyzer $(CFLAGS)
+	$(CXX) analyzer.cpp -o analyzer $(CXXFLAGS)
 analyzer-clean:
 	rm -f analyzer
 
 combined: combined.cpp
-	g++ combined.cpp -o combined $(CFLAGS)
+	$(CXX) combined.cpp -o combined $(CXXFLAGS)
 combined-clean:
 	rm -f combined
 
 standalone_tester: standalone_tester.cpp
-	g++ standalone_tester.cpp -o standalone_tester $(CFLAGS)
+	$(CXX) standalone_tester.cpp -o standalone_tester $(CXXFLAGS)
 standalone_tester-clean:
 	rm -f standalone_tester
 

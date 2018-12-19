@@ -9,18 +9,16 @@
 #include "common.hpp"
 #include "dnn.hpp"
 
-void transform () {
-    sampml::data::reader<input_vector> data("test.dat");
+std::vector<output_vector> samples;
+void transform (std::string_view path) {
+    sampml::data::reader<input_vector> data(path);
     transformer t;
     t.submit(data);
 
-    std::vector<output_vector> samples(std::move(t.pool));
-    sampml::data::write(samples, "test_transformed.dat");
+    samples = std::move(t.pool);
 }
 
 void test() {
-    sampml::data::reader<sample_type> samples("test_transformed.dat");
-
     sampml::trainer::svm_classifier<sample_type> svm;
     svm.deserialize(std::string(svm_model.begin(), svm_model.end()));
 
@@ -56,7 +54,12 @@ void test() {
               << "possible use of aimbot: " << float(aimbot_samples)/(samples.size()) * 100 << "%\n";
 }
 
-int main () {
-    transform();
+int main (int argc, char* argv[]) {
+    if(argc == 1) {
+        std::cout << "Usage: " << argv[0] << " [raw data file]" << std::endl;
+        return 0;
+    }
+
+    transform(argv[1]);
     test();
 }

@@ -1,0 +1,68 @@
+language: cpp
+dist: xenial
+sudo: required
+
+addons:
+  apt:
+    sources:
+        - ubuntu-toolchain-r-test
+    packages:
+        - cmake
+        - gfortran
+        - gcc-7
+        - g++-7
+        - g++-multilib
+       
+env:
+  global:
+    - ALTERNATE_CC=gcc-7
+    - ALTERNATE_CXX=g++-7
+    - MAKE_THREADS=2
+
+before_install:
+  - wget https://github.com/xianyi/OpenBLAS/archive/v0.3.4.tar.gz
+  - tar xf v0.3.4.tar.gz
+
+  - wget "https://github.com/davisking/dlib/archive/v19.16.tar.gz"
+  - tar xf v19.16.tar.gz
+
+install:
+  - cd OpenBLAS-0.3.4
+  - make FC=gfortran USE_THREAD=0 -j $MAKE_THREADS > /dev/null
+  - sudo make PREFIX=/usr/local install
+  - cd ..
+
+  - mkdir dlib-19.16/build
+  - cd dlib-19.16/build
+  - cmake .. -DBUILD_SHARED_LIBS=ON -DDLIB_JPEG_SUPPORT=OFF -DDLIB_PNG_SUPPORT=OFF -DDLIB_NO_GUI_SUPPORT=ON
+  - cmake --build . --config Release -- -j $MAKE_THREADS
+  - sudo cmake --build . --target install
+  - sudo ldconfig
+  - cd ../..
+  
+  - cp -r ./sampml/sampml ./examples/anti-aimbot/plugin/lib
+  - cp -r ./dlib-19.16/dlib ./examples/anti-aimbot/plugin/lib
+  
+script:
+  - cd examples/anti-aimbot/
+  
+  - echo "Building and testing training tools"
+  - cd training
+  - make  CXX=$LATEST_CXX -j $MAKE_THREADS
+  - time ./transformer
+  - time ./analyzer
+  - time ./svm
+  - time ./rf
+  - time ./dnn
+  - time ./combined
+  - time ./standalone_tester ./data/avoiding_detection.dat
+
+  - echo "Building plugin"
+  - cd ../plugin
+  - mkdir build
+  - cd build
+  - cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=$LATEST_CC -DCMAKE_CXX_COMPILER=$LATEST_CXX
+  - cmake --build . -- -j $MAKE_THREADS
+  
+  - cd ../../../
+
