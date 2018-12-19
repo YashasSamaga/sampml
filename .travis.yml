@@ -9,8 +9,9 @@ addons:
     packages:
         - gfortran
         - gcc-7
+        - gcc-7-multilib
         - g++-7
-        - g++-multilib
+        - g++-7-multilib
        
 env:
   global:
@@ -36,7 +37,7 @@ install:
   - sudo make PREFIX=/usr/local install
   - cd ..
 
-  - mkdir dlib-19.16/build
+  - mkdir -p dlib-19.16/build
   - cd dlib-19.16/build
   - cmake .. -DBUILD_SHARED_LIBS=ON -DDLIB_JPEG_SUPPORT=OFF -DDLIB_PNG_SUPPORT=OFF -DDLIB_NO_GUI_SUPPORT=ON
   - cmake --build . --config Release -- -j $MAKE_THREADS
@@ -61,12 +62,16 @@ script:
   - time ./combined
   - time ./standalone_tester ./data/avoiding_detection.dat
 
+  - pushd /$(pwd)
+  - cd /usr/include
+  - sudo ln -s asm-generic/ asm
+  - popd
+
   - echo "Building plugin"
   - cd ../plugin
-  - mkdir build
+  - mkdir -p build
   - cd build
   - cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=$ALTERNATE_CC -DCMAKE_CXX_COMPILER=$ALTERNATE_CXX
   - cmake --build . -- -j $MAKE_THREADS
   
   - cd ../../../
-
