@@ -1,0 +1,63 @@
+version: '{build}'
+
+image:
+ - Ubuntu1804
+
+cache:
+- OpenBLAS-0.3.4
+- dlib-19.16
+
+environment:
+  MAKE_THREADS: 2
+
+install:
+  - sudo apt -y install gcc-multilib g++-multilib
+
+  - if [ ! -f "OpenBLAS-0.3.4/Makefile" ]; then wget https://github.com/xianyi/OpenBLAS/archive/v0.3.4.tar.gz; fi
+  - if [ ! -f "OpenBLAS-0.3.4/Makefile" ]; then tar xf v0.3.4.tar.gz; fi
+
+  - if [ ! -f "dlib-19.16/CMakeLists.txt" ]; then wget https://github.com/davisking/dlib/archive/v19.16.tar.gz; fi
+  - if [ ! -f "dlib-19.16/CMakeLists.txt" ]; then tar xf v19.16.tar.gz; fi
+  
+  - cd OpenBLAS-0.3.4
+  - make FC=gfortran USE_THREAD=0 -j $MAKE_THREADS > /dev/null
+  - sudo make PREFIX=/usr/local install
+  - cd ..
+  
+  - mkdir -p dlib-19.16/build
+  - cd dlib-19.16/build
+  - cmake .. -DBUILD_SHARED_LIBS=ON -DDLIB_JPEG_SUPPORT=OFF -DDLIB_PNG_SUPPORT=OFF -DDLIB_NO_GUI_SUPPORT=ON
+  - cmake --build . --config Release -- -j $MAKE_THREADS
+  - sudo make install
+  - sudo ldconfig
+  - cd ../..
+  
+before_build:
+  - cp -r ./sampml/sampml ./examples/anti-aimbot/plugin/lib
+  - cp -r ./dlib-19.16/dlib ./examples/anti-aimbot/plugin/lib
+  
+  - pushd /$(pwd)
+  - cd /usr/include
+  - sudo ln -s asm-generic/ asm
+  - popd
+
+build_script:  
+  - cd examples/anti-aimbot/
+  - echo "Building and testing training tools"
+  - cd training
+  - make -j $MAKE_THREADS
+  - time ./transformer
+  - time ./analyzer
+  - time ./svm
+  - time ./rf
+  - time ./dnn
+  - time ./combined
+  - time ./standalone_tester ./data/avoiding_detection.dat
+  
+  - echo "Building plugin"
+  - cd ../plugin
+  - mkdir -p build
+  - cd build
+  - cmake .. -DCMAKE_BUILD_TYPE=Release
+  - cmake --build . -- -j $MAKE_THREADS
+  - cd ../../../../
