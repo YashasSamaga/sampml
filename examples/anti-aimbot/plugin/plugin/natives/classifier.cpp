@@ -1,14 +1,16 @@
-#include "main.h"
+#include <filesystem>
 
-#include <dlib/dnn.h>
+#include "main.h"
+#include "classifier.hpp"
+
 #include <sampml/svm_classifier.hpp>
 #include <sampml/random_forest.hpp>
-#include "tools/fixed_thread_pool.hpp"
-
-#include "iscript.hpp"
-#include "classifier.hpp"
-#include "transform.hpp"
 #include "dnn.hpp"
+
+#include "transform.hpp"
+
+#include "tools/fixed_thread_pool.hpp"
+#include "iscript.hpp"
 
 namespace classifier {
     using sample_type = output_vector;
@@ -17,7 +19,9 @@ namespace classifier {
         static thread_local sampml::trainer::svm_classifier<sample_type> svm;
         static thread_local bool loaded = false;
         if (loaded == false) {
-            svm.deserialize("models/svm_classifier.dat");
+            std::string model;
+            config_reader.get("svm_model_file", model, std::string(svm_model_default));
+            svm.deserialize(model);
             loaded = true;
         }
         return svm.test(sample);
@@ -27,17 +31,21 @@ namespace classifier {
         static thread_local sampml::trainer::random_forest<sample_type> rf;
         static thread_local bool loaded = false;
         if (loaded == false) {
-            rf.deserialize("models/rf_classifier.dat");
+            std::string model;
+            config_reader.get("rf_model_file", model, std::string(rf_model_default));
+            rf.deserialize(model);
             loaded = true;
         }
-        return rf.test(sample);
+        return std::clamp(rf.test(sample), 0.0, 1.0);
     }
 
     double test_vector_dnn(const sample_type& sample) {
         static thread_local aa_network_type net;
         static thread_local bool loaded = false;
         if (loaded == false) {
-            dlib::deserialize("models/dnn_classifier.dat") >> net;
+            std::string model;
+            config_reader.get("dnn_model_file", model, std::string(dnn_model_default));
+            dlib::deserialize(model) >> net;
             loaded = true;
         }
         return net(sample);
@@ -76,9 +84,23 @@ namespace classifier {
         }
     };
 
-    fixed_thread_pool<input_queue_item_t, output_queue_item_t, process_functor_t> pool;
+    tools::fixed_thread_pool<input_queue_item_t, output_queue_item_t, process_functor_t> pool;
     void Load() {
-        pool.start(2);
+        int num;
+        config_reader.get("thread_pool_size", num, num_detector_threads_default);
+        pool.start(num);
+
+        std::string svm_model_file;
+        config_reader.get("svm_model_file", svm_model_file, std::string(svm_model_default));
+        assert(std::filesystem::exists(svm_model_file));
+
+        std::string rf_model_file;
+        config_reader.get("rf_model_file", rf_model_file, std::string(rf_model_default));
+        assert(std::filesystem::exists(rf_model_file));
+
+        std::string dnn_model_file;
+        config_reader.get("dnn_model_file", dnn_model_file, std::string(dnn_model_default));
+        assert(std::filesystem::exists(dnn_model_file));      
     }
 
     void ProcessTick() {
@@ -151,13 +173,20 @@ namespace classifier {
 
         cell AMX_NATIVE_CALL submit_vector(AMX * amx, cell* params)
         {
+            error_if(!check_params(2), "[AntiAimbot] classifier>> submit_vector: expected 2 parameters but found %d parameters.", get_params_count());
+
             cell playerid = params[1];
             cell *data;
             amx_GetAddr(amx, params[2], &data);
 
             auto vector = pawn_array_to_vector(data);
 
-            static std::array<transformer, MAX_PLAYERS> transformers;
+            static std::vector<transformer> transformers;
+            if (playerid == samp::INVALID_PLAYER_ID || playerid < 0)
+                return -1;
+
+            if (static_cast<std::size_t>(playerid) >= transformers.size())
+                transformers.resize(playerid + 1);
 
             transformers[playerid].submit(vector);
             if (transformers[playerid].pool.size()) {
@@ -167,9 +196,9 @@ namespace classifier {
                 item.tag.playerid = playerid;
                 transformers[playerid].pool.pop_back();
                 pool.enqueue(item);
-                return true;
+                return 1;
             }
-            return false;
+            return 0;
         }
     }
 }

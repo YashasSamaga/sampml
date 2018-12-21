@@ -1,17 +1,16 @@
 #include "main.h"
 #include "version.h"
 
-#include <iostream>
-#include <thread>
-
 #include <sdk/amx/amx.h>
 #include <sdk/plugincommon.h>
-#include <cassert>
+
+#include "tools/config_reader.hpp"
 #include "natives/classifier.hpp"
 #include "iscript.hpp"
 
 extern void *pAMXFunctions;
 logprintf_t logprintf;
+tools::config_reader config_reader;
 
 PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData)
 {	
@@ -22,6 +21,7 @@ PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData)
 	logprintf("  Version Key: %h", PLUGIN_VERSION_KEY);
 	logprintf("***********************************************************");
 
+    config_reader.open(config_file);
     classifier::Load();
 	return true;
 }

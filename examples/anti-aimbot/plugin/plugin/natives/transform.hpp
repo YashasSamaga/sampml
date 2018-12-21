@@ -343,7 +343,7 @@ class transformer {
         int ratio_out;
     private:    
         bool filter(translated_input& input) {
-            if(input.shooter.weapon != 31
+            if((input.shooter.weapon != 31 && input.shooter.weapon != 30 && input.shooter.weapon != 29)
             || input.shooter.state != samp::PLAYER_STATE_ONFOOT
             || input.victim.state != samp::PLAYER_STATE_ONFOOT
             || input.shooter.special_action != samp::SPECIAL_ACTION_NONE
@@ -359,6 +359,10 @@ class transformer {
             || input.shooter.camera.mode != samp::CAMERA_WEAPON_AIM
             || (input.shooter.position - input.victim.position).length() < 10.0
             || (input.shooter.position - input.victim.position).length() > 40.0
+            || input.shooter.network.packet_loss > 0.5
+            || input.victim.network.packet_loss > 0.5
+            || input.shooter.network.ping > 400
+            || input.victim.network.ping > 400
             || (input.hit == false && shot_status.size() == 0)
             ) {
                 process(true);
@@ -367,6 +371,7 @@ class transformer {
             }
 
             if((input.hit && prev_victimid != samp::INVALID_PLAYER_ID && prev_victimid != input.victim.id)
+            || (prev_weaponid != -1 && prev_weaponid != input.shooter.weapon)
             || (prev_tick != -1 && input.tick - prev_tick > 500)) {
                 process(true);
                 reset();
@@ -374,6 +379,7 @@ class transformer {
                     return true;
             }
             prev_victimid = input.victim.id;
+            prev_weaponid = input.shooter.weapon;
 
             if(input.tick - prev_tick < 200)
                 return true;
@@ -591,10 +597,12 @@ class transformer {
         std::vector<vector_3d> transformed_reticle_axes;
 
         /* filtering data */
-        int prev_victimid, prev_tick;
+        int prev_victimid, prev_weaponid;
+        int64_t prev_tick;
 
         void reset () {
             prev_victimid = samp::INVALID_PLAYER_ID;
+            prev_weaponid = -1;
             prev_tick = -1;
 
             shot_timestamp.clear();
