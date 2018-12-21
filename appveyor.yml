@@ -8,10 +8,12 @@ cache:
 - dlib-19.16
 
 environment:
+  ALTERNATE_CC: gcc-8
+  ALTERNATE_CXX: g++-8
   MAKE_THREADS: 2
 
 install:
-  - sudo apt -y install gcc-multilib g++-multilib
+  - sudo apt -y install gcc-8 g++-8 gcc-8-multilib g++-8-multilib
 
   - if [ ! -f "OpenBLAS-0.3.4/Makefile" ]; then wget https://github.com/xianyi/OpenBLAS/archive/v0.3.4.tar.gz; fi
   - if [ ! -f "OpenBLAS-0.3.4/Makefile" ]; then tar xf v0.3.4.tar.gz; fi
@@ -58,6 +60,6 @@ build_script:
   - cd ../plugin
   - mkdir -p build
   - cd build
-  - cmake .. -DCMAKE_BUILD_TYPE=Release
+  - cmake .. -DCMAKE_BUILD_TYPE=Release  -DCMAKE_C_COMPILER=$ALTERNATE_CC -DCMAKE_CXX_COMPILER=$ALTERNATE_CXX
   - cmake --build . -- -j $MAKE_THREADS
   - cd ../../../../

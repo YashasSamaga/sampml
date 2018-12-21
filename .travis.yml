@@ -8,15 +8,15 @@ addons:
         - ubuntu-toolchain-r-test
     packages:
         - gfortran
-        - gcc-7
-        - gcc-7-multilib
-        - g++-7
-        - g++-7-multilib
+        - gcc-8
+        - gcc-8-multilib
+        - g++-8
+        - g++-8-multilib
        
 env:
   global:
-    - ALTERNATE_CC=gcc-7
-    - ALTERNATE_CXX=g++-7
+    - ALTERNATE_CC=gcc-8
+    - ALTERNATE_CXX=g++-8
     - MAKE_THREADS=2
     
 cache:
