@@ -4,8 +4,8 @@
 #include <string_view>
 
 /* raw dataset */
-constexpr std::string_view positive_raw_data = "data/raw/positive.dat";
-constexpr std::string_view negative_raw_data = "data/raw/negative.dat";
+constexpr std::string_view positive_raw_data_directory = "data/raw/positive/";
+constexpr std::string_view negative_raw_data_directory = "data/raw/negative/";
 
 /* transformed dataset */
 constexpr std::string_view positive_train_data = "data/transformed/positive_train.dat";

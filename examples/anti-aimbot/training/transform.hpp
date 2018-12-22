@@ -315,8 +315,12 @@ struct features {
 
 class transformer {
     public:
-        transformer() : filter_out{0}, count_out{0}, ratio_out{0} { }
-        std::vector<output_vector> pool;
+        transformer() { }
+
+        template<class Container>
+        transformer(const Container& cont) {
+            submit(cont);
+        }
 
         template<class Container>
         void submit(const Container& cont) {
@@ -337,7 +341,10 @@ class transformer {
 
             if(try_process)
                 process();
-        }       
+        }
+
+        std::vector<output_vector> pool;
+
         int filter_out;
         int count_out;
         int ratio_out;

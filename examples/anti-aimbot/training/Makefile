@@ -1,6 +1,6 @@
 SRCS = svm.cpp dnn.cpp transformer.cpp analyzer.cpp
 INCLUDE_DIRS = -I../../../sampml/
-CXXFLAGS = $(INCLUDE_DIRS) -Wall -Wextra -Werror -O3 -ldlib -lopenblas -std=c++17
+CXXFLAGS = $(INCLUDE_DIRS) -Wall -Wextra -Werror -O3 -ldlib -lopenblas -lstdc++fs -std=c++17
 
 .PHONY: all clean dnn-clean svm-clean transformer-clean analyzer-clean combined-clean standalone_tester-clean
 
