@@ -120,7 +120,7 @@ namespace SAMPML_NAMESPACE {
         }
 
         template<class container_type>
-        void write(const container_type& samples, std::string_view path) {
+        void write(std::string_view path, const container_type& samples) {
             std::ofstream output_file(std::string(path.begin(), path.end()));
             if(!output_file.is_open()) { throw io_error(); }
 
@@ -129,6 +129,20 @@ namespace SAMPML_NAMESPACE {
                 for(auto value : sample)
                     output_file << value << ' ';
                 output_file << std::endl;
+            }
+        }
+
+        template<class ForwardItr>
+        void write(std::string_view path, ForwardItr first, ForwardItr last) {
+            std::ofstream output_file(std::string(path.begin(), path.end()));
+            if(!output_file.is_open()) { throw io_error(); }
+
+            output_file << std::setprecision(6);
+            while(first != last) {
+                for(auto value : *first)
+                    output_file << value << ' ';
+                output_file << std::endl;
+                first++;
             }
         }
     }
