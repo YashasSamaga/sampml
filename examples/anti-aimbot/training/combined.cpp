@@ -32,8 +32,8 @@ int main () {
     sampml::trainer::random_forest<sample_type> rf;
     rf.deserialize(std::string(rf_model.begin(), rf_model.end()));
 
-    aa_network_type dnn;
-    dlib::deserialize(std::string(dnn_model.begin(), dnn_model.end())) >> dnn;
+    test_network_type dnn;
+    dlib::deserialize(std::string(dnn_model.begin(), dnn_model.end())) >> dnn.subnet();
 
     int true_positives = 0,
         false_positives = 0,
@@ -43,8 +43,8 @@ int main () {
     for (std::size_t i = 0; i < testing_data.size(); ++i)
     {
         double svm_prob = svm.test(testing_data[i]),
-               rf_prob = rf.test(testing_data[i]),
-               dnn_prob = dnn(testing_data[i]);
+               rf_prob = std::clamp(rf.test(testing_data[i]), 0.0, 1.0),
+               dnn_prob = dlib::mat(dnn(testing_data[i]))(1);
         double prob = (svm_prob + rf_prob + dnn_prob)/3;
         
         const float cutoff = 0.5;

@@ -25,16 +25,16 @@ void test() {
     sampml::trainer::random_forest<sample_type> rf;
     rf.deserialize(std::string(rf_model.begin(), rf_model.end()));
 
-    aa_network_type dnn;
-    dlib::deserialize(std::string(dnn_model.begin(), dnn_model.end())) >> dnn;
+    test_network_type dnn;
+    dlib::deserialize(std::string(dnn_model.begin(), dnn_model.end())) >> dnn.subnet();
 
     int aimbot_samples = 0,
         clean_samples = 0;
     dlib::running_stats<double> values;
     for(auto& sample : samples) {
         double svm_prob = svm.test(sample),
-               rf_prob = rf.test(sample),
-               dnn_prob = dnn(sample);
+               rf_prob = std::clamp(rf.test(sample), 0.0, 1.0),
+               dnn_prob = dlib::mat(dnn(sample))(1);
         double prob = (svm_prob + rf_prob + dnn_prob)/3;
 
         const float cutoff = 0.5;
