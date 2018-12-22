@@ -40,15 +40,15 @@ namespace classifier {
     }
 
     double test_vector_dnn(const sample_type& sample) {
-        static thread_local aa_network_type net;
+        static thread_local test_network_type net;
         static thread_local bool loaded = false;
         if (loaded == false) {
             std::string model;
             config_reader.get("dnn_model_file", model, std::string(dnn_model_default));
-            dlib::deserialize(model) >> net;
+            dlib::deserialize(model) >> net.subnet();
             loaded = true;
         }
-        return net(sample);
+        return dlib::mat(net(sample))(1);
     }
 
     struct queue_item_tag_t {

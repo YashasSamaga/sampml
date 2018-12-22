@@ -315,8 +315,12 @@ struct features {
 
 class transformer {
     public:
-        transformer() : filter_out{0}, count_out{0}, ratio_out{0} { }
-        std::vector<output_vector> pool;
+        transformer() { }
+
+        template<class Container>
+        transformer(const Container& cont) {
+            submit(cont);
+        }
 
         template<class Container>
         void submit(const Container& cont) {
@@ -337,7 +341,10 @@ class transformer {
 
             if(try_process)
                 process();
-        }       
+        }
+
+        std::vector<output_vector> pool;
+
         int filter_out;
         int count_out;
         int ratio_out;
@@ -354,15 +361,11 @@ class transformer {
             || input.victim.in_vehicle
             || input.victim.surfing_object
             || input.victim.surfing_vehicle
-            || std::abs((input.victim.velocity - input.shooter.velocity).length()) < 0.02
-            || input.victim.velocity.length() < 0.02
+            || std::abs((input.victim.velocity - input.shooter.velocity).length()) < 0.05
+            || input.victim.velocity.length() < 0.05
             || input.shooter.camera.mode != samp::CAMERA_WEAPON_AIM
             || (input.shooter.position - input.victim.position).length() < 10.0
             || (input.shooter.position - input.victim.position).length() > 40.0
-            || input.shooter.network.packet_loss > 0.5
-            || input.victim.network.packet_loss > 0.5
-            || input.shooter.network.ping > 400
-            || input.victim.network.ping > 400
             || (input.hit == false && shot_status.size() == 0)
             ) {
                 process(true);
@@ -372,7 +375,9 @@ class transformer {
 
             if((input.hit && prev_victimid != samp::INVALID_PLAYER_ID && prev_victimid != input.victim.id)
             || (prev_weaponid != -1 && prev_weaponid != input.shooter.weapon)
-            || (prev_tick != -1 && input.tick - prev_tick > 500)) {
+            || (prev_tick != -1 && input.tick - prev_tick > 500)
+            || (prev_second != -1 && input.second - prev_second >= 2)
+            ) {
                 process(true);
                 reset();
                 if (input.hit == false)
@@ -381,10 +386,11 @@ class transformer {
             prev_victimid = input.victim.id;
             prev_weaponid = input.shooter.weapon;
 
-            if(input.tick - prev_tick < 200)
+            if(input.tick - prev_tick < 200) //TODO
                 return true;
 			
             prev_tick = input.tick;
+            prev_second = input.second;
             return false;
         }
 
@@ -598,12 +604,13 @@ class transformer {
 
         /* filtering data */
         int prev_victimid, prev_weaponid;
-        int64_t prev_tick;
+        int64_t prev_tick, prev_second;
 
         void reset () {
             prev_victimid = samp::INVALID_PLAYER_ID;
             prev_weaponid = -1;
             prev_tick = -1;
+            prev_second = -1;
 
             shot_timestamp.clear();
             shot_status.clear();
