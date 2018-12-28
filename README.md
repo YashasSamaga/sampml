@@ -1,7 +1,7 @@
 # sampml
-| Travis CI | AppVeyor CI |
-| --------- | ----------- |
-| [![Build Status](https://travis-ci.org/YashasSamaga/sampml.svg?branch=master)](https://travis-ci.org/YashasSamaga/sampml) | [![Build status](https://ci.appveyor.com/api/projects/status/us7n7fx75qlblyg3?svg=true)](https://ci.appveyor.com/project/YashasSamaga/sampml) |
+| Travis CI | AppVeyor Linux | AppVeyor Windows |
+| --------- | -------------- | ---------------- |
+| [![Build Status](https://travis-ci.org/YashasSamaga/sampml.svg?branch=master)](https://travis-ci.org/YashasSamaga/sampml) | [![Build status](https://ci.appveyor.com/api/projects/status/us7n7fx75qlblyg3?svg=true)](https://ci.appveyor.com/project/YashasSamaga/sampml) | [![Build status](https://ci.appveyor.com/api/projects/status/gjj8krqn9uqmgmv9?svg=true)](https://ci.appveyor.com/project/YashasSamaga/sampml-mjxk0) |
 
 ---
 

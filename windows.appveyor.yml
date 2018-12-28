@@ -1,0 +1,30 @@
+version: '{build}'
+
+image: Visual Studio 2017
+
+install:
+  - appveyor DownloadFile https://github.com/davisking/dlib/archive/v19.16.zip
+  - 7z x v19.16.zip
+
+before_build:
+  - xcopy "%APPVEYOR_BUILD_FOLDER%\sampml\sampml" "%APPVEYOR_BUILD_FOLDER%\examples\anti-aimbot\plugin\lib\sampml" /e /i
+  - xcopy "%APPVEYOR_BUILD_FOLDER%\dlib-19.16\dlib" "%APPVEYOR_BUILD_FOLDER%\examples\anti-aimbot\plugin\lib\dlib" /e /i
+
+build_script:
+  - cd %APPVEYOR_BUILD_FOLDER%\examples\anti-aimbot\plugin
+  - mkdir build
+  - cd build
+  - cmake ..
+  - cmake --build . --config Release
+
+after_build:
+  - cd %APPVEYOR_BUILD_FOLDER%
+  - mkdir package\plugins\anti-aimbot\models package\pawno\include package\filterscripts
+  - copy "examples\anti-aimbot\plugin\build\Release\AntiAimbot.dll" "package\plugins\AntiAimbot.dll"
+  - xcopy "examples\anti-aimbot\training\models" "package\plugins\anti-aimbot"  /e /i
+  - xcopy "examples\anti-aimbot\filterscripts" "package" /e /i
+  - xcopy "examples\anti-aimbot\include" "package\pawno" /e /i
+  - 7z a antiaimbot-windows.zip package
+
+artifacts:
+  - path: antiaimbot-windows.zip
