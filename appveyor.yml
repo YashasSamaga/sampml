@@ -10,7 +10,7 @@ cache:
 environment:
   ALTERNATE_CC: gcc-8
   ALTERNATE_CXX: g++-8
-  MAKE_THREADS: 2
+  MAKE_THREADS: 3
 
 install:
   - sudo apt -y install gcc-8 g++-8 gcc-8-multilib g++-8-multilib
@@ -47,7 +47,7 @@ build_script:
   - cd examples/anti-aimbot/
   - echo "Building and testing training tools"
   - cd training
-  - make -j $MAKE_THREADS
+  - make CXX=$ALTERNATE_CXX -j $MAKE_THREADS
   - time ./transformer
   - time ./analyzer
   - time ./svm
@@ -63,3 +63,14 @@ build_script:
   - cmake .. -DCMAKE_BUILD_TYPE=Release  -DCMAKE_C_COMPILER=$ALTERNATE_CC -DCMAKE_CXX_COMPILER=$ALTERNATE_CXX
   - cmake --build . -- -j $MAKE_THREADS
   - cd ../../../../
+
+after_build:
+  - mkdir -p package/plugins/anti-aimbot/models package/pawno/include package/filterscripts
+  - cp -f examples/anti-aimbot/plugin/build/AntiAimbot.so package/plugins
+  - cp -rf examples/anti-aimbot/training/models package/plugins/anti-aimbot
+  - cp -rf examples/anti-aimbot/filterscripts package
+  - cp -rf examples/anti-aimbot/include package/pawno
+  - tar czf antiaimbot-linux.tar.gz package
+
+artifacts:
+  - path: antiaimbot-linux.tar.gz
