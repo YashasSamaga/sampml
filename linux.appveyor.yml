@@ -13,6 +13,7 @@ environment:
   MAKE_THREADS: 3
 
 install:
+  - sudo apt update
   - sudo apt -y install gcc-8 g++-8 gcc-8-multilib g++-8-multilib
 
   - if [ ! -f "OpenBLAS-0.3.4/Makefile" ]; then wget https://github.com/xianyi/OpenBLAS/archive/v0.3.4.tar.gz; fi
